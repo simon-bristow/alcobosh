@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#0b0d12"/>
+  <!-- Beaker: straight sides, base, lip flare -->
+  <path d="M22 12 L42 12 M24 12 L24 50 Q24 55 29 55 L35 55 Q40 55 40 50 L40 12"
+        fill="none" stroke="#e8e9ec" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Liquid (about 50%) -->
+  <path d="M25 32 L39 32 L39 50 Q39 54 35 54 L29 54 Q25 54 25 50 Z"
+        fill="#10b981"/>
+  <!-- Measurement tick marks -->
+  <line x1="40" y1="22" x2="44" y2="22" stroke="#e8e9ec" stroke-width="2" stroke-linecap="round"/>
+  <line x1="40" y1="32" x2="46" y2="32" stroke="#e8e9ec" stroke-width="2" stroke-linecap="round"/>
+  <line x1="40" y1="42" x2="44" y2="42" stroke="#e8e9ec" stroke-width="2" stroke-linecap="round"/>
+</svg>

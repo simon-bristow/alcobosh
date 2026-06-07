@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Favicon options</title>
+  <style>
+    body { background: #0b0d12; color: #e8e9ec; font-family: system-ui, sans-serif; padding: 24px; margin: 0; }
+    h1 { font-size: 18px; font-weight: 500; margin: 0 0 24px; }
+    .row { display: grid; grid-template-columns: 200px 1fr; gap: 24px; padding: 20px 0; border-bottom: 1px solid #1f2937; align-items: center; }
+    .label { font-size: 14px; color: #9ca3af; }
+    .name { font-size: 16px; color: #e8e9ec; font-weight: 500; margin-bottom: 4px; }
+    .sizes { display: flex; gap: 24px; align-items: end; }
+    .size { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .size img { display: block; }
+    .px { font-size: 11px; color: #6b7280; }
+    .light { background: #f3f4f6; padding: 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Alcbosh favicon options — preview at actual sizes</h1>
+  <div id="rows"></div>
+  <script>
+    const options = [
+      { name: 'Option 1', desc: 'Pint glass with fill', file: 'option-1-pint.svg' },
+      { name: 'Option 2', desc: '"A" monogram', file: 'option-2-monogram.svg' },
+      { name: 'Option 3', desc: 'Beaker with measurement', file: 'option-3-beaker.svg' },
+      { name: 'Option 4', desc: 'Progress ring + A', file: 'option-4-ring.svg' },
+    ];
+    const sizes = [16, 24, 32, 48, 96, 192];
+    const html = options.map(o => `
+      <div class="row">
+        <div>
+          <div class="name">${o.name}</div>
+          <div class="label">${o.desc}</div>
+        </div>
+        <div class="sizes">
+          ${sizes.map(s => `
+            <div class="size">
+              <img src="${o.file}" width="${s}" height="${s}" />
+              <div class="px">${s}px</div>
+            </div>
+          `).join('')}
+          <div class="size">
+            <div class="light"><img src="${o.file}" width="32" height="32" /></div>
+            <div class="px">on light</div>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    document.getElementById('rows').innerHTML = html;
+  </script>
+</body>
+</html>

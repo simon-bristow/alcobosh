@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#10b981"/>
+  <!-- Bold geometric "A" -->
+  <path d="M18 50 L29 14 L35 14 L46 50 L39 50 L36.7 42 L27.3 42 L25 50 Z M29 36 L35 36 L32 25 Z"
+        fill="#0b0d12"/>
+</svg>
