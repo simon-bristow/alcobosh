@@ -399,17 +399,13 @@ function Home({
           disabled={!showFreeDayBtn || freeDayMarked}
           className={`rounded-2xl py-3 text-sm transition ${
             freeDayMarked
-              ? 'bg-emerald-500/20 text-emerald-300 cursor-default'
+              ? 'bg-orange-700/40 text-orange-200 cursor-default'
               : showFreeDayBtn
-                ? 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-200'
+                ? 'bg-orange-700/30 hover:bg-orange-700/40 text-orange-100'
                 : 'bg-white/5 text-white/30 cursor-not-allowed'
           }`}
         >{freeDayMarked ? 'Free day ✓' : 'Free day'}</button>
       </div>
-
-      <p className="text-[11px] text-white/30 mt-3 text-center">
-        Tap to log on <span className="text-white/50">{label.toLowerCase()}</span> · long-press a drink to set custom ABV
-      </p>
 
       <section className="mt-6">
         <h2 className="text-sm text-white/60 mb-2">Recent drinks</h2>

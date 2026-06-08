@@ -55,11 +55,13 @@ Keyframes live in `src/index.css`. The component re-randomises particle position
 
 ### State machine
 
-| viewDate's entries | Button label | Enabled? |
-|---|---|---|
-| no real drinks, no free-day marker | "Free day" | yes |
-| no real drinks, has free-day marker | "Free day ✓" | no (already marked) |
-| any real drinks | "Free day" | no (greyed out) |
+| viewDate's entries | Button label | Enabled? | Style |
+|---|---|---|---|
+| no real drinks, no free-day marker | "Free day" | yes | `bg-orange-700/30 hover:/40 text-orange-100` |
+| no real drinks, has free-day marker | "Free day ✓" | no (already marked) | `bg-orange-700/40 text-orange-200 cursor-default` |
+| any real drinks | "Free day" | no (greyed out) | `bg-white/5 text-white/30 cursor-not-allowed` |
+
+The button uses dark orange as a deliberate non-emerald colour so it doesn't blend into the green quick-add tiles or the green "Free day ✓" badge inside the Day Total card. The celebration animation still uses mixed emoji including green hearts/leaves.
 
 The Day Total card also shows a small green "Free day ✓" line below the bar when the marker exists and no real drinks have been logged on that day.
 
