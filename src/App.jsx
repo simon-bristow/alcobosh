@@ -118,6 +118,17 @@ export default function App() {
     setViewDate(next)
   }
 
+  function shiftWeek(delta) {
+    const next = new Date(viewDate)
+    next.setDate(next.getDate() + delta * 7)
+    next.setHours(0, 0, 0, 0)
+    const today = startOfDay(new Date())
+    setViewDate(next > today ? today : next)
+  }
+
+  const currentWeekStart = weekBounds(now).start
+  const isViewingCurrentWeek = weekStart.getTime() === currentWeekStart.getTime()
+
   return (
     <div className="min-h-full flex flex-col max-w-md mx-auto px-4 pb-8">
       <Header screen={screen} setScreen={setScreen} />
@@ -131,6 +142,10 @@ export default function App() {
           onNextDay={() => shiftDay(+1)}
           onJumpToToday={() => setViewDate(startOfDay(new Date()))}
           onPickDay={(d) => setViewDate(startOfDay(d))}
+          onPrevWeek={() => shiftWeek(-1)}
+          onNextWeek={() => shiftWeek(+1)}
+          onJumpToCurrentWeek={() => setViewDate(startOfDay(new Date()))}
+          isViewingCurrentWeek={isViewingCurrentWeek}
           weekUnits={weekUnits}
           dayUnits={dayUnits}
           streak={streak}
@@ -290,6 +305,7 @@ function useLongPress({ onLong, ms = 500 }) {
 
 function Home({
   settings, viewDate, isViewingToday, onPrevDay, onNextDay, onJumpToToday, onPickDay,
+  onPrevWeek, onNextWeek, onJumpToCurrentWeek, isViewingCurrentWeek,
   weekUnits, dayUnits, streak, viewDay, viewDayReal, viewDayFreeMarker,
   viewWeek, weekStart, recent, rolling,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
@@ -358,12 +374,34 @@ function Home({
         )}
       </section>
 
-      {/* Combined week block: total + heatmap */}
+      {/* Combined week block: nav + total + heatmap */}
       <section className="mt-4 rounded-2xl bg-white/5 p-5">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <button
+            onClick={onPrevWeek}
+            aria-label="Previous week"
+            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0"
+          >←</button>
+
+          <button
+            onClick={onJumpToCurrentWeek}
+            disabled={isViewingCurrentWeek}
+            className="text-sm text-white/80 disabled:cursor-default flex-1 text-center truncate"
+            title={isViewingCurrentWeek ? '' : 'Jump to this week'}
+          >
+            {isViewingCurrentWeek ? 'This week' : `Week of ${weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
+          </button>
+
+          <button
+            onClick={onNextWeek}
+            disabled={isViewingCurrentWeek}
+            aria-label="Next week"
+            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0 disabled:opacity-30 disabled:hover:bg-white/5"
+          >→</button>
+        </div>
+
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-sm text-white/60">
-            {isViewingToday ? 'This week' : `Week of ${weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
-          </span>
+          <span className="text-xs text-white/50">Week total</span>
           <span className="text-sm text-white/60">{fmtUnits(weekUnits)} / {settings.weeklyCap} units</span>
         </div>
         <Bar pct={pct} state={weekState} />

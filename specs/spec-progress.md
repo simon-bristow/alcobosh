@@ -24,12 +24,21 @@ Next arrow disabled when `viewDate === today` (no future browsing).
 
 ## Combined week block
 
-One card containing both the weekly total and the 7-day heatmap of the visible week.
+One card containing the week-navigation row, weekly total, and the 7-day heatmap of the visible week.
 
-### Header
+### Header (week navigation)
 
-- Label: `This week` (when viewDate is in the current week) OR `Week of D MMM` (otherwise)
-- Right side: `X.X / N units` (real units only)
+Three buttons in a row, matching the Day panel pattern:
+
+- **Prev arrow** (`←`) — always enabled; shifts `viewDate` by −7 days
+- **Week label** — `This week` (when viewDate is in the current week) OR `Week of D MMM` (otherwise). Clickable when not on the current week → jumps `viewDate` to today's start.
+- **Next arrow** (`→`) — disabled when `viewDate` is in the current week; shifts `viewDate` by +7 days, clamping to today if the new value would be in the future
+
+Implemented via `shiftWeek(delta)` in `App.jsx` — same shape as `shiftDay`, but multiplies the delta by 7. Forward jumps clamp to today: if today is Thu and viewDate is the prior Fri, `shiftWeek(+1)` lands on today (Thu), not the next Fri.
+
+### Sub-header (week total)
+
+Below the nav row: `Week total` label on the left, `X.X / N units` on the right (real units only).
 
 ### Bar
 
