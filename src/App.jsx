@@ -66,6 +66,24 @@ export default function App() {
   // 5 most recent drinks (drinks are returned sorted at desc by the subscription).
   const recent = useMemo(() => drinks.slice(0, 5), [drinks])
 
+  // Rolling totals across the last 7 / 30 days (real drinks only).
+  const rolling = useMemo(() => {
+    const cutoff = (n) => {
+      const d = new Date(now)
+      d.setDate(d.getDate() - n)
+      d.setHours(0, 0, 0, 0)
+      return d
+    }
+    const c7 = cutoff(6)  // 7 days inclusive of today
+    const c30 = cutoff(29)
+    let t7 = 0, t30 = 0
+    drinks.filter(isReal).forEach((d) => {
+      if (d.at >= c30) t30 += d.units
+      if (d.at >= c7) t7 += d.units
+    })
+    return { t7, t30 }
+  }, [drinks])
+
   async function quickAdd(tile, abvOverride) {
     if (!session) return
     const abv = abvOverride ?? tile.abv
@@ -112,6 +130,7 @@ export default function App() {
           onPrevDay={() => shiftDay(-1)}
           onNextDay={() => shiftDay(+1)}
           onJumpToToday={() => setViewDate(startOfDay(new Date()))}
+          onPickDay={(d) => setViewDate(startOfDay(d))}
           weekUnits={weekUnits}
           dayUnits={dayUnits}
           streak={streak}
@@ -121,6 +140,7 @@ export default function App() {
           viewWeek={viewWeek}
           weekStart={weekStart}
           recent={recent}
+          rolling={rolling}
           onQuickAdd={quickAdd}
           onLongPressTile={setAbvEditTile}
           onCustom={() => setCustomOpen(true)}
@@ -201,7 +221,7 @@ function Header({ screen, setScreen }) {
         Alcobosh
       </button>
       <nav className="flex gap-1 text-sm">
-        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Today</TabBtn>
+        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Home</TabBtn>
         <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')}>Cal</TabBtn>
         <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}>⚙︎</TabBtn>
       </nav>
@@ -269,9 +289,9 @@ function useLongPress({ onLong, ms = 500 }) {
 }
 
 function Home({
-  settings, viewDate, isViewingToday, onPrevDay, onNextDay, onJumpToToday,
+  settings, viewDate, isViewingToday, onPrevDay, onNextDay, onJumpToToday, onPickDay,
   weekUnits, dayUnits, streak, viewDay, viewDayReal, viewDayFreeMarker,
-  viewWeek, weekStart, recent,
+  viewWeek, weekStart, recent, rolling,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
 }) {
   const pct = Math.min(100, (weekUnits / settings.weeklyCap) * 100)
@@ -365,11 +385,20 @@ function Home({
             const future = day > today
             return (
               <div key={i} className="text-center">
-                <div
-                  className={`h-8 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : ''} ${future ? 'opacity-30' : ''}`}
+                <button
+                  type="button"
+                  onClick={() => !future && onPickDay?.(day)}
+                  disabled={future}
+                  className={`w-full h-12 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : ''} ${future ? 'opacity-30 cursor-default' : 'hover:ring-2 hover:ring-white/30'} flex items-center justify-center text-[11px] leading-none touch-manipulation`}
                   style={u > 0 && u < settings.dailyWarn ? { opacity: 0.3 + intensity * 0.7 } : undefined}
                   title={`${day.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Free day' : 'no entry'}`}
-                />
+                >
+                  {u > 0 ? (
+                    <span className="font-medium text-white">{fmtUnits(u)}</span>
+                  ) : free ? (
+                    <span className="text-emerald-300">✓</span>
+                  ) : null}
+                </button>
                 <div className="text-[10px] text-white/40 mt-1">{['M','T','W','T','F','S','S'][i]}</div>
               </div>
             )
@@ -380,6 +409,18 @@ function Home({
             Local mode — Firebase not configured. Add your config in <code>src/firebase.js</code> to sync.
           </p>
         )}
+      </section>
+
+      {/* Rolling totals: last 7 days / last 30 days */}
+      <section className="mt-3 grid grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-white/5 p-3">
+          <div className="text-[11px] text-white/50">Last 7 days</div>
+          <div className="text-lg font-semibold mt-0.5">{fmtUnits(rolling?.t7 ?? 0)}<span className="text-xs text-white/50"> u</span></div>
+        </div>
+        <div className="rounded-2xl bg-white/5 p-3">
+          <div className="text-[11px] text-white/50">Last 30 days</div>
+          <div className="text-lg font-semibold mt-0.5">{fmtUnits(rolling?.t30 ?? 0)}<span className="text-xs text-white/50"> u</span></div>
+        </div>
       </section>
 
       {/* Quick-add tiles */}

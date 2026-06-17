@@ -1,6 +1,6 @@
-# Spec — Day, Week, and AF Streak panels
+# Spec — Day, Week, Rolling Totals, AF Streak panels
 
-Covers the two stacked panels at the top of the Today screen — the selected-day total (with prev/next nav) and the combined week block (total + 7-day heatmap) — plus the alcohol-free-day counter.
+Covers the stacked panels on the Home screen — the selected-day total (with prev/next nav), the combined week block (total + clickable 7-day heatmap), the rolling 7-day / 30-day totals, and the alcohol-free-day counter.
 
 Free-day markers are filtered out of all unit totals — they only affect the streak and the inline "Free day ✓" indicator.
 
@@ -35,20 +35,41 @@ One card containing both the weekly total and the 7-day heatmap of the visible w
 
 Single `<Bar pct={...} state={...} />`. Same color thresholds as the day bar but scaled to `settings.weeklyCap`.
 
-### 7-day heatmap
+### 7-day heatmap (clickable)
 
-7 columns Mon–Sun. Each day cell:
+7 columns Mon–Sun. Each cell is a `<button>` that, when tapped, calls `onPickDay(day)` → updates `viewDate` so the Day panel and week heatmap re-anchor to the selected day. Future days are disabled.
 
-- `bg-emerald-500` (varying opacity by intensity) for `0 < u < dailyWarn`
-- `bg-red-500/70` for `u >= dailyWarn`
-- `bg-emerald-500/15` for free-day-only days (`u == 0 && free`)
-- `bg-white/5` for empty days
-- Ring `ring-2 ring-white/40` for the selected `viewDate`
-- Future days: `opacity-30`
+Visual rules per cell:
 
-Letter label `M T W T F S S` below each cell.
+| Condition | Background |
+|---|---|
+| `u >= dailyWarn` | `bg-red-500/70` |
+| `0 < u < dailyWarn` | `bg-emerald-500` (opacity ramps `0.3 → 1.0` by intensity) |
+| `u == 0 && free` | `bg-emerald-500/15` |
+| empty | `bg-white/5` |
+| future | additional `opacity-30 cursor-default` |
+| selected `viewDate` | additional `ring-2 ring-white/40` |
+| hover (non-future) | `hover:ring-2 hover:ring-white/30` |
+
+Cell content:
+- If `u > 0` → `fmtUnits(u)` rendered inside the cell in white text (`text-[11px] font-medium`).
+- Else if `free` → emerald `✓`.
+- Else → empty.
+
+The day-of-week letter (`M T W T F S S`) sits below each cell as a small label.
 
 Tooltip: `<Date>: X.Xu | Free day | no entry`.
+
+## Rolling totals row (below the week block)
+
+Two side-by-side cards, both showing real-drink totals only:
+
+| Card | Window |
+|---|---|
+| Last 7 days | drinks where `at >= startOfDay(now − 6 days)` (7 days inclusive of today) |
+| Last 30 days | drinks where `at >= startOfDay(now − 29 days)` (30 days inclusive of today) |
+
+These are **global** — they don't follow `viewDate`. They always show rolling activity from "now". Computed in `App.jsx` `rolling` memo and passed into Home as `{ t7, t30 }`.
 
 ## AF-day streak
 

@@ -10,7 +10,7 @@ Whenever any file under `src/`, `index.html`, `vite.config.js`, `.github/workflo
 |---|---|
 | App overview, stack, flow, constraints, viewDate, file map | `specs/appspec.md` |
 | Quick-add tiles, long-press ABV, free day + celebration, custom drink, recent list, edit/delete (incl. date) | `specs/spec-logging.md` |
-| Day panel (with prev/next nav), combined week block (total + heatmap), AF streak | `specs/spec-progress.md` |
+| Day panel (with prev/next nav), combined week block (total + clickable heatmap with units), rolling 7d/30d totals, AF streak | `specs/spec-progress.md` |
 | Calendar view, month grid, monthly stats, day-cell tap-to-jump | `specs/spec-calendar.md` |
 | Settings UI, tile editor, limits, persistence | `specs/spec-settings.md` |
 | Firebase, auth, Firestore model, device pairing, local fallback | `specs/spec-sync.md` |

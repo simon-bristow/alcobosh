@@ -15,8 +15,8 @@ Personal alcohol unit tracker. Tuned for the user's typical drinks (Pot 285ml, B
 
 Single-page app with a top-nav switching between three views:
 
-1. **Today** (`home`) — selected-day panel with prev/next arrows, combined week block (total + heatmap), quick-add tiles (long-press for custom ABV), Free Day button (with celebration), recent-drinks list, AF-day streak
-2. **Cal** (`calendar`) — month grid showing units per day; tap a day to jump back to Today with that date selected
+1. **Home** (`home`) — selected-day panel with prev/next arrows, combined week block (total + clickable heatmap with per-day units), rolling 7-day / 30-day totals, quick-add tiles (long-press for custom ABV), Free Day button (with celebration), recent-drinks list, AF-day streak. The Home tab itself is labelled "Home" in the nav even though the internal screen value remains `home`.
+2. **Cal** (`calendar`) — month grid showing units per day; tap a day to jump back to Home with that date selected
 3. **Settings** (`settings`, ⚙︎ icon) — limits, tile editor, device-pairing UI
 
 ## Core constants
@@ -31,6 +31,7 @@ Single-page app with a top-nav switching between three views:
 | Long-press threshold | 500ms (≤10px movement) | `App.jsx` `useLongPress()` |
 | Free-day shape | `{ freeDay: true, units: 0, ml: 0, abv: 0, name: 'Free day' }` | `App.jsx` `logFreeDay()` |
 | Recent-drinks list size | 5 most recent | `App.jsx` `recent = drinks.slice(0, 5)` |
+| Rolling totals windows | last 7 days, last 30 days (inclusive of today) | `App.jsx` `rolling` memo |
 | Celebration duration | ~1.9s | `Celebration` component + CSS `floatUp` keyframe |
 
 All defaults are overridable in Settings; user choices persist to localStorage as `alcbosh:settings`.
@@ -43,7 +44,7 @@ All defaults are overridable in Settings; user choices persist to localStorage a
 - The combined week block uses `weekBounds(viewDate)`
 - Quick-add tiles, Custom Drink, Free Day all default new entries to `viewDate` (noon on past days, serverTimestamp on today)
 
-The **recent drinks list and AF streak** are global — they don't follow `viewDate`. Calendar's "tap a day" sets `viewDate` and switches screen back to Today.
+The **recent drinks list, rolling 7d/30d totals, and AF streak** are global — they don't follow `viewDate`. The home-page heatmap and the Calendar page both call `onPickDay(date)` to set `viewDate` (Cal also switches screen back to Home).
 
 ## State flow
 
