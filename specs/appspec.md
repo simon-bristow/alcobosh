@@ -1,13 +1,15 @@
-# Alcbosh — App Spec
+# Alcobosh — App Spec
 
 Personal alcohol unit tracker. Tuned for the user's typical drinks (Pot 285ml, Bottle 330ml, Pint 568ml, all ~5% ABV). Data syncs across devices via Firebase; falls back to localStorage if Firebase isn't configured.
+
+> **Naming note:** the user-facing app is "Alcobosh", but the localStorage keys still use the legacy `alcbosh:*` prefix (settings, drinks, dataUid). Do not change these — existing data depends on the old keys.
 
 ## Stack
 
 - **React 19** + **Vite 8** (no framework, no router)
 - **Tailwind CSS v3**
 - **Firebase Web SDK** — Anonymous auth + Firestore
-- Hosted on **GitHub Pages** at <https://simon-bristow.github.io/alcbosh/>
+- Hosted on **GitHub Pages** at <https://simon-bristow.github.io/alcobosh/>
 
 ## Screens
 

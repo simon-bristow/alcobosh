@@ -1,4 +1,4 @@
-# Alcbosh — Project Instructions
+# Alcobosh — Project Instructions
 
 ## Spec Maintenance (IMPORTANT)
 
@@ -23,9 +23,11 @@ If a change introduces a concept that doesn't fit any existing spec, create a ne
 ## Deployment
 
 - Auto-deploys on every push to `main` via `.github/workflows/deploy.yml`
-- Live at <https://simon-bristow.github.io/alcbosh/>
+- Live at <https://simon-bristow.github.io/alcobosh/>
+- Repo: `simon-bristow/alcobosh` (renamed from `alcbosh` in 2026)
 - Pages source must be set to **GitHub Actions** in repo settings (not "Deploy from a branch")
 - The user's PAT does NOT have `workflow` scope — workflow file edits must be done via the GitHub web UI; source-only commits push fine
+- LocalStorage keys retain the legacy `alcbosh:*` prefix (settings, drinks, dataUid) for back-compat — do NOT change them
 
 ## Stack
 

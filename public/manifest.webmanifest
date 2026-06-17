@@ -1,9 +1,9 @@
 {
-  "name": "Alcbosh",
-  "short_name": "Alcbosh",
+  "name": "Alcobosh",
+  "short_name": "Alcobosh",
   "description": "Personal alcohol unit tracker",
-  "start_url": "/alcbosh/",
-  "scope": "/alcbosh/",
+  "start_url": "/alcobosh/",
+  "scope": "/alcobosh/",
   "display": "standalone",
   "background_color": "#0b0d12",
   "theme_color": "#0b0d12",

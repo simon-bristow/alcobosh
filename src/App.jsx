@@ -193,12 +193,12 @@ export default function App() {
 
 function Header({ screen, setScreen }) {
   return (
-    <header className="flex items-center justify-between pt-6 pb-4 gap-2">
+    <header className="flex items-center justify-between pt-4 pb-4 gap-2">
       <button
         onClick={() => setScreen('home')}
-        className="text-xl font-semibold tracking-tight shrink-0"
+        className="text-xl font-semibold tracking-tight shrink-0 py-2"
       >
-        Alcbosh
+        Alcobosh
       </button>
       <nav className="flex gap-1 text-sm">
         <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Today</TabBtn>
@@ -213,8 +213,8 @@ function TabBtn({ active, onClick, children }) {
   return (
     <button
       onClick={onClick}
-      className={`px-2.5 py-1.5 rounded-lg ${
-        active ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white'
+      className={`px-3.5 py-2.5 rounded-lg touch-manipulation ${
+        active ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white active:bg-white/5'
       }`}
     >
       {children}

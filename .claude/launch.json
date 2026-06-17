@@ -6,7 +6,7 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173,
-      "cwd": "/Users/simonbristow/Development/Alc"
+      "cwd": "/Users/simonbristow/Development/Alcobosh"
     }
   ]
 }
