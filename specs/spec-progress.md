@@ -1,84 +1,57 @@
-# Spec — Day, Week, Rolling Totals, AF Streak panels
+# Spec — Rolling 7-day block, Last 30 days, AF Streak
 
-Covers the stacked panels on the Home screen — the selected-day total (with prev/next nav), the combined week block (total + clickable 7-day heatmap), the rolling 7-day / 30-day totals, and the alcohol-free-day counter.
+Covers the panels at the top of the Home screen — a rolling 7-day total with heatmap, the last-30-day total, and the alcohol-free-day counter.
 
-Free-day markers are filtered out of all unit totals — they only affect the streak and the inline "Free day ✓" indicator.
+The earlier "Day panel" (with prev/next day arrows and the daily-warn bar) was removed; the rolling heatmap is the single source of per-day state on Home. The "viewDate" concept is preserved but is now only set implicitly (tap a cell, or pick a day in Cal); it controls which date new entries are logged against.
 
-## Day panel (top)
+Free-day markers are filtered out of all unit totals — they only affect the streak and the inline "✓" cell badge.
 
-Renders a card with:
+## Rolling 7-day block (top)
 
-- **Prev / Next arrows** (`←` / `→`) flanking the day label
-- **Day label** — `Today` / `Yesterday` / `Sat 6 Jun` (short weekday + day + short month). Clickable when not on today → jumps to today.
-- **Day total** — sum of real units on the selected day vs `settings.dailyWarn`
-- **Bar** color state (same thresholds as week):
-  - `dayUnits >= dailyWarn` → red
-  - `dayUnits >= dailyWarn × 0.75` → amber
-  - else → emerald
-- Inline messages below the bar:
-  - over → `Over daily limit.` (red)
-  - warn → `Approaching daily limit.` (amber)
-  - free-day marker exists & no real drinks → `Free day ✓` (emerald)
+One card with:
 
-Next arrow disabled when `viewDate === today` (no future browsing).
+- **Header**: `Last 7 days` on the left, `X.X / N units` on the right (always compared against `settings.weeklyCap`).
+- **Bar**: same `<Bar pct={...} state={...} />` component; states use the weekly thresholds (`>= cap` red, `>= 0.75 × cap` amber, else emerald).
+- **Heatmap**: 7 cells in chronological order — `today − 6` on the left through `today` on the right. The window does NOT slide — it's always anchored at today.
 
-## Combined week block
-
-One card containing the week-navigation row, weekly total, and the 7-day heatmap of the visible week.
-
-### Header (week navigation)
-
-Three buttons in a row, matching the Day panel pattern:
-
-- **Prev arrow** (`←`) — always enabled; shifts `viewDate` by −7 days
-- **Week label** — `This week` (when viewDate is in the current week) OR `Week of D MMM` (otherwise). Clickable when not on the current week → jumps `viewDate` to today's start.
-- **Next arrow** (`→`) — disabled when `viewDate` is in the current week; shifts `viewDate` by +7 days, clamping to today if the new value would be in the future
-
-Implemented via `shiftWeek(delta)` in `App.jsx` — same shape as `shiftDay`, but multiplies the delta by 7. Forward jumps clamp to today: if today is Thu and viewDate is the prior Fri, `shiftWeek(+1)` lands on today (Thu), not the next Fri.
-
-### Sub-header (week total)
-
-Below the nav row: `Week total` label on the left, `X.X / N units` on the right (real units only).
-
-### Bar
-
-Single `<Bar pct={...} state={...} />`. Same color thresholds as the day bar but scaled to `settings.weeklyCap`.
-
-### 7-day heatmap (clickable)
-
-7 columns Mon–Sun. Each cell is a `<button>` that, when tapped, calls `onPickDay(day)` → updates `viewDate` so the Day panel and week heatmap re-anchor to the selected day. Future days are disabled.
-
-Visual rules per cell:
+### Cell rendering
 
 | Condition | Background |
 |---|---|
 | `u >= dailyWarn` | `bg-red-500/70` |
-| `0 < u < dailyWarn` | `bg-emerald-500` (opacity ramps `0.3 → 1.0` by intensity) |
+| `0 < u < dailyWarn` | `bg-emerald-500` (opacity `0.3 → 1.0` by intensity) |
 | `u == 0 && free` | `bg-emerald-500/15` |
 | empty | `bg-white/5` |
-| future | additional `opacity-30 cursor-default` |
-| selected `viewDate` | additional `ring-2 ring-white/40` |
-| hover (non-future) | `hover:ring-2 hover:ring-white/30` |
+
+- Ring `ring-2 ring-white/40` for the cell whose date equals `viewDate`
+- Ring `ring-1 ring-white/20` for today (subtler, so it's still findable when a past day is selected)
+- All cells are clickable: tap sets `viewDate` to that day. The window does not shift; the ring moves.
 
 Cell content:
-- If `u > 0` → `fmtUnits(u)` rendered inside the cell in white text (`text-[11px] font-medium`).
-- Else if `free` → emerald `✓`.
-- Else → empty.
+- `u > 0` → white `fmtUnits(u)` text
+- `free && u === 0` → emerald `✓`
+- else → blank
 
-The day-of-week letter (`M T W T F S S`) sits below each cell as a small label.
+Day-of-week letter (`M/T/W/T/F/S/S`) is computed per cell from the date — it rotates as the calendar advances.
 
-Tooltip: `<Date>: X.Xu | Free day | no entry`.
+## "Logging on …" banner
 
-## Rolling totals row (below the week block)
+When `viewDate !== today`, a small amber pill is shown above the action buttons:
 
-Two side-by-side cards, both showing real-drink totals only:
+> Logging on **Mon 17 Jun** — tap to switch to today
 
-| Card | Window |
-|---|---|
-| Last 7 days | drinks where `at >= startOfDay(now − 6 days)` (7 days inclusive of today) |
-| Last 30 days | drinks where `at >= startOfDay(now − 29 days)` (30 days inclusive of today) |
+Tap calls `onJumpToToday` and resets `viewDate` to today. This is the single explicit indicator that subsequent quick-add / custom / free-day actions will land on a date other than today.
 
-These are **global** — they don't follow `viewDate`. They always show rolling activity from "now". Computed in `App.jsx` `rolling` memo and passed into Home as `{ t7, t30 }`.
+When `viewDate === today` the banner is hidden.
+
+## Last 30 days card
+
+A single full-width card below the rolling-7 block:
+
+- `Last 30 days` label on the left
+- `X.X u` total on the right (real drinks only, last 30 calendar days inclusive of today)
+
+The previous "Last 7 days" stat card was removed — it's redundant with the new rolling-7 block's header total.
 
 ## AF-day streak
 

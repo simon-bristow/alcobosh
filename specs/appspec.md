@@ -15,7 +15,7 @@ Personal alcohol unit tracker. Tuned for the user's typical drinks (Pot 285ml, B
 
 Single-page app with a top-nav switching between three views:
 
-1. **Home** (`home`) — selected-day panel with prev/next arrows, combined week block (total + clickable heatmap with per-day units), rolling 7-day / 30-day totals, quick-add tiles (long-press for custom ABV), Free Day button (with celebration), recent-drinks list, AF-day streak. The Home tab itself is labelled "Home" in the nav even though the internal screen value remains `home`.
+1. **Home** (`home`) — rolling 7-day block (total + clickable heatmap, today on the right edge), Last 30 days card, quick-add tiles (long-press for custom ABV), Custom + Free Day buttons (with celebration), an amber "Logging on …" banner when a non-today cell is selected, recent-drinks list, AF-day streak. The Home tab is labelled "Home" in the nav even though the internal screen value is `home`.
 2. **Cal** (`calendar`) — month grid showing units per day; tap a day to jump back to Home with that date selected
 3. **Settings** (`settings`, ⚙︎ icon) — limits, tile editor, device-pairing UI
 
@@ -31,20 +31,23 @@ Single-page app with a top-nav switching between three views:
 | Long-press threshold | 500ms (≤10px movement) | `App.jsx` `useLongPress()` |
 | Free-day shape | `{ freeDay: true, units: 0, ml: 0, abv: 0, name: 'Free day' }` | `App.jsx` `logFreeDay()` |
 | Recent-drinks list size | 5 most recent | `App.jsx` `recent = drinks.slice(0, 5)` |
-| Rolling totals windows | last 7 days, last 30 days (inclusive of today) | `App.jsx` `rolling` memo |
+| Rolling 7-day window | 7 days inclusive of today (anchored at today, does not slide) | `App.jsx` `rolling7` memo |
+| Last 30 days | sum of real units in last 30 days inclusive of today | `App.jsx` `last30` memo |
 | Celebration duration | ~1.9s | `Celebration` component + CSS `floatUp` keyframe |
 
 All defaults are overridable in Settings; user choices persist to localStorage as `alcbosh:settings`.
 
 ## View date
 
-`App.jsx` keeps a `viewDate` state (default: today's midnight). Prev/next arrows on the Today panel shift it by ±1 day; jumping to today's label resets it. Many derived values follow `viewDate`:
+`App.jsx` keeps a `viewDate` state (default: today's midnight). It only controls the date used for new entries (quick-add, Custom Drink, Free Day all read it). It is set by:
 
-- "Day total" bar uses `viewDate`'s drinks
-- The combined week block uses `weekBounds(viewDate)`
-- Quick-add tiles, Custom Drink, Free Day all default new entries to `viewDate` (noon on past days, serverTimestamp on today)
+- Tapping a cell in the home page's rolling-7 heatmap
+- Tapping a day cell in the Cal screen (which also switches the screen back to Home)
+- Tapping the amber "Logging on …" banner (resets to today)
 
-The **recent drinks list, rolling 7d/30d totals, and AF streak** are global — they don't follow `viewDate`. The home-page heatmap and the Calendar page both call `onPickDay(date)` to set `viewDate` (Cal also switches screen back to Home).
+When `viewDate !== today`, the amber banner is visible above the action buttons so it's always clear which date the next log will land on.
+
+The **rolling-7-day heatmap, recent drinks list, last-30-day total, and AF streak** are all anchored at today — they do NOT follow `viewDate`. Only the logging actions and the highlight-ring on the heatmap follow it.
 
 ## State flow
 

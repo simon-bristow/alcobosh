@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import {
   calcUnits,
   fmtUnits,
-  weekBounds,
   sameDay,
   startOfDay,
   isoDate,
@@ -50,38 +49,39 @@ export default function App() {
     return at
   }
 
-  const { start: weekStart, end: weekEnd } = weekBounds(viewDate)
-  const viewWeek = useMemo(
-    () => drinks.filter((d) => d.at >= weekStart && d.at < weekEnd),
-    [drinks, weekStart, weekEnd],
-  )
-  const viewDay = useMemo(() => viewWeek.filter((d) => sameDay(d.at, viewDate)), [viewWeek, viewDate])
+  const viewDay = useMemo(() => drinks.filter((d) => sameDay(d.at, viewDate)), [drinks, viewDate])
   const viewDayReal = viewDay.filter(isReal)
   const viewDayFreeMarker = viewDay.find(isFreeDay)
-
-  const weekUnits = viewWeek.filter(isReal).reduce((s, d) => s + d.units, 0)
-  const dayUnits = viewDayReal.reduce((s, d) => s + d.units, 0)
   const streak = useMemo(() => afStreak(drinks, now), [drinks])
 
   // 5 most recent drinks (drinks are returned sorted at desc by the subscription).
   const recent = useMemo(() => drinks.slice(0, 5), [drinks])
 
-  // Rolling totals across the last 7 / 30 days (real drinks only).
-  const rolling = useMemo(() => {
-    const cutoff = (n) => {
-      const d = new Date(now)
-      d.setDate(d.getDate() - n)
-      d.setHours(0, 0, 0, 0)
-      return d
+  // Rolling last-7-day window: 7 cells, today on the right. Also the source for
+  // the home heatmap and the "7-day total" header.
+  const rolling7 = useMemo(() => {
+    const unitsMap = unitsByDay(drinks)
+    const freeMap = freeDaysByDay(drinks)
+    const today = startOfDay(now)
+    const days = []
+    let total = 0
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(today)
+      d.setDate(d.getDate() - i)
+      const k = isoDate(d)
+      const u = unitsMap[k] || 0
+      total += u
+      days.push({ date: d, units: u, free: !!freeMap[k] })
     }
-    const c7 = cutoff(6)  // 7 days inclusive of today
-    const c30 = cutoff(29)
-    let t7 = 0, t30 = 0
-    drinks.filter(isReal).forEach((d) => {
-      if (d.at >= c30) t30 += d.units
-      if (d.at >= c7) t7 += d.units
-    })
-    return { t7, t30 }
+    return { days, total }
+  }, [drinks])
+
+  // Last 30 days total (real drinks only).
+  const last30 = useMemo(() => {
+    const cutoff = new Date(now)
+    cutoff.setDate(cutoff.getDate() - 29)
+    cutoff.setHours(0, 0, 0, 0)
+    return drinks.filter(isReal).reduce((s, d) => (d.at >= cutoff ? s + d.units : s), 0)
   }, [drinks])
 
   async function quickAdd(tile, abvOverride) {
@@ -109,26 +109,6 @@ export default function App() {
     setCelebrate(true)
   }
 
-  function shiftDay(delta) {
-    const next = new Date(viewDate)
-    next.setDate(next.getDate() + delta)
-    next.setHours(0, 0, 0, 0)
-    const today = startOfDay(new Date())
-    if (next > today) return
-    setViewDate(next)
-  }
-
-  function shiftWeek(delta) {
-    const next = new Date(viewDate)
-    next.setDate(next.getDate() + delta * 7)
-    next.setHours(0, 0, 0, 0)
-    const today = startOfDay(new Date())
-    setViewDate(next > today ? today : next)
-  }
-
-  const currentWeekStart = weekBounds(now).start
-  const isViewingCurrentWeek = weekStart.getTime() === currentWeekStart.getTime()
-
   return (
     <div className="min-h-full flex flex-col max-w-md mx-auto px-4 pb-8">
       <Header screen={screen} setScreen={setScreen} />
@@ -138,24 +118,14 @@ export default function App() {
           settings={settings}
           viewDate={viewDate}
           isViewingToday={isViewingToday}
-          onPrevDay={() => shiftDay(-1)}
-          onNextDay={() => shiftDay(+1)}
-          onJumpToToday={() => setViewDate(startOfDay(new Date()))}
           onPickDay={(d) => setViewDate(startOfDay(d))}
-          onPrevWeek={() => shiftWeek(-1)}
-          onNextWeek={() => shiftWeek(+1)}
-          onJumpToCurrentWeek={() => setViewDate(startOfDay(new Date()))}
-          isViewingCurrentWeek={isViewingCurrentWeek}
-          weekUnits={weekUnits}
-          dayUnits={dayUnits}
+          onJumpToToday={() => setViewDate(startOfDay(new Date()))}
           streak={streak}
-          viewDay={viewDay}
           viewDayReal={viewDayReal}
           viewDayFreeMarker={viewDayFreeMarker}
-          viewWeek={viewWeek}
-          weekStart={weekStart}
           recent={recent}
-          rolling={rolling}
+          rolling7={rolling7}
+          last30={last30}
           onQuickAdd={quickAdd}
           onLongPressTile={setAbvEditTile}
           onCustom={() => setCustomOpen(true)}
@@ -304,132 +274,50 @@ function useLongPress({ onLong, ms = 500 }) {
 }
 
 function Home({
-  settings, viewDate, isViewingToday, onPrevDay, onNextDay, onJumpToToday, onPickDay,
-  onPrevWeek, onNextWeek, onJumpToCurrentWeek, isViewingCurrentWeek,
-  weekUnits, dayUnits, streak, viewDay, viewDayReal, viewDayFreeMarker,
-  viewWeek, weekStart, recent, rolling,
+  settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
+  streak, viewDayReal, viewDayFreeMarker, recent, rolling7, last30,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
 }) {
-  const pct = Math.min(100, (weekUnits / settings.weeklyCap) * 100)
-  const dayPct = Math.min(100, (dayUnits / settings.dailyWarn) * 100)
-  const dayState =
-    dayUnits >= settings.dailyWarn ? 'over' : dayUnits >= settings.dailyWarn * 0.75 ? 'warn' : 'ok'
+  const sevenTotal = rolling7.total
+  const pct = Math.min(100, (sevenTotal / settings.weeklyCap) * 100)
   const weekState =
-    weekUnits >= settings.weeklyCap ? 'over' : weekUnits >= settings.weeklyCap * 0.75 ? 'warn' : 'ok'
+    sevenTotal >= settings.weeklyCap ? 'over' : sevenTotal >= settings.weeklyCap * 0.75 ? 'warn' : 'ok'
 
   const showFreeDayBtn = viewDayReal.length === 0
   const freeDayMarked = !!viewDayFreeMarker
-  const label = dayLabel(viewDate, isViewingToday)
-
-  const daysInWeek = useMemo(() => {
-    const acc = {}
-    viewWeek.filter(isReal).forEach((d) => { acc[isoDate(d.at)] = (acc[isoDate(d.at)] || 0) + d.units })
-    return acc
-  }, [viewWeek])
-  const freeInWeek = useMemo(() => {
-    const acc = {}
-    viewWeek.filter(isFreeDay).forEach((d) => { acc[isoDate(d.at)] = true })
-    return acc
-  }, [viewWeek])
+  const selectedLabel = dayLabel(viewDate, isViewingToday)
+  const todayKey = isoDate(new Date())
 
   return (
     <>
-      {/* Today (or selected day) with prev/next arrows */}
+      {/* Rolling-7-day block: total + heatmap */}
       <section className="rounded-2xl bg-white/5 p-5">
-        <div className="flex items-center justify-between mb-2 gap-2">
-          <button
-            onClick={onPrevDay}
-            aria-label="Previous day"
-            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0"
-          >←</button>
-
-          <button
-            onClick={onJumpToToday}
-            disabled={isViewingToday}
-            className="text-sm text-white/80 disabled:cursor-default flex-1 text-center truncate"
-            title={isViewingToday ? '' : 'Jump to today'}
-          >
-            {label}
-          </button>
-
-          <button
-            onClick={onNextDay}
-            disabled={isViewingToday}
-            aria-label="Next day"
-            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0 disabled:opacity-30 disabled:hover:bg-white/5"
-          >→</button>
-        </div>
-
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-xs text-white/50">Day total</span>
-          <span className={`text-sm ${dayState === 'over' ? 'text-red-400' : dayState === 'warn' ? 'text-amber-300' : 'text-white/60'}`}>
-            {fmtUnits(dayUnits)} / {settings.dailyWarn} units
-          </span>
-        </div>
-        <Bar pct={dayPct} state={dayState} />
-        {dayState === 'over' && <p className="text-xs text-red-300 mt-2">Over daily limit.</p>}
-        {dayState === 'warn' && <p className="text-xs text-amber-200 mt-2">Approaching daily limit.</p>}
-        {freeDayMarked && viewDayReal.length === 0 && (
-          <p className="text-xs text-emerald-300 mt-2">Free day ✓</p>
-        )}
-      </section>
-
-      {/* Combined week block: nav + total + heatmap */}
-      <section className="mt-4 rounded-2xl bg-white/5 p-5">
-        <div className="flex items-center justify-between mb-3 gap-2">
-          <button
-            onClick={onPrevWeek}
-            aria-label="Previous week"
-            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0"
-          >←</button>
-
-          <button
-            onClick={onJumpToCurrentWeek}
-            disabled={isViewingCurrentWeek}
-            className="text-sm text-white/80 disabled:cursor-default flex-1 text-center truncate"
-            title={isViewingCurrentWeek ? '' : 'Jump to this week'}
-          >
-            {isViewingCurrentWeek ? 'This week' : `Week of ${weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
-          </button>
-
-          <button
-            onClick={onNextWeek}
-            disabled={isViewingCurrentWeek}
-            aria-label="Next week"
-            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0 disabled:opacity-30 disabled:hover:bg-white/5"
-          >→</button>
-        </div>
-
-        <div className="flex items-baseline justify-between mb-2">
-          <span className="text-xs text-white/50">Week total</span>
-          <span className="text-sm text-white/60">{fmtUnits(weekUnits)} / {settings.weeklyCap} units</span>
+          <span className="text-sm text-white/60">Last 7 days</span>
+          <span className="text-sm text-white/60">{fmtUnits(sevenTotal)} / {settings.weeklyCap} units</span>
         </div>
         <Bar pct={pct} state={weekState} />
         <div className="grid grid-cols-7 gap-1 mt-4">
-          {Array.from({ length: 7 }).map((_, i) => {
-            const day = new Date(weekStart)
-            day.setDate(day.getDate() + i)
-            const k = isoDate(day)
-            const u = daysInWeek[k] || 0
-            const free = freeInWeek[k]
-            const isViewedDay = sameDay(day, viewDate)
+          {rolling7.days.map((cell, i) => {
+            const u = cell.units
+            const free = cell.free
+            const isViewedDay = sameDay(cell.date, viewDate)
+            const isToday = isoDate(cell.date) === todayKey
             const intensity = Math.min(1, u / settings.dailyWarn)
             const bg = u === 0
               ? free ? 'bg-emerald-500/15' : 'bg-white/5'
               : u >= settings.dailyWarn
                 ? 'bg-red-500/70'
                 : 'bg-emerald-500'
-            const today = startOfDay(new Date())
-            const future = day > today
+            const dow = ['S','M','T','W','T','F','S'][cell.date.getDay()]
             return (
               <div key={i} className="text-center">
                 <button
                   type="button"
-                  onClick={() => !future && onPickDay?.(day)}
-                  disabled={future}
-                  className={`w-full h-12 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : ''} ${future ? 'opacity-30 cursor-default' : 'hover:ring-2 hover:ring-white/30'} flex items-center justify-center text-[11px] leading-none touch-manipulation`}
+                  onClick={() => onPickDay?.(cell.date)}
+                  className={`w-full h-12 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : isToday ? 'ring-1 ring-white/20' : ''} hover:ring-2 hover:ring-white/30 flex items-center justify-center text-[11px] leading-none touch-manipulation`}
                   style={u > 0 && u < settings.dailyWarn ? { opacity: 0.3 + intensity * 0.7 } : undefined}
-                  title={`${day.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Free day' : 'no entry'}`}
+                  title={`${cell.date.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Free day' : 'no entry'}`}
                 >
                   {u > 0 ? (
                     <span className="font-medium text-white">{fmtUnits(u)}</span>
@@ -437,7 +325,7 @@ function Home({
                     <span className="text-emerald-300">✓</span>
                   ) : null}
                 </button>
-                <div className="text-[10px] text-white/40 mt-1">{['M','T','W','T','F','S','S'][i]}</div>
+                <div className="text-[10px] text-white/40 mt-1">{dow}</div>
               </div>
             )
           })}
@@ -449,16 +337,10 @@ function Home({
         )}
       </section>
 
-      {/* Rolling totals: last 7 days / last 30 days */}
-      <section className="mt-3 grid grid-cols-2 gap-3">
-        <div className="rounded-2xl bg-white/5 p-3">
-          <div className="text-[11px] text-white/50">Last 7 days</div>
-          <div className="text-lg font-semibold mt-0.5">{fmtUnits(rolling?.t7 ?? 0)}<span className="text-xs text-white/50"> u</span></div>
-        </div>
-        <div className="rounded-2xl bg-white/5 p-3">
-          <div className="text-[11px] text-white/50">Last 30 days</div>
-          <div className="text-lg font-semibold mt-0.5">{fmtUnits(rolling?.t30 ?? 0)}<span className="text-xs text-white/50"> u</span></div>
-        </div>
+      {/* Last 30 days */}
+      <section className="mt-3 rounded-2xl bg-white/5 p-3 flex items-baseline justify-between">
+        <span className="text-[11px] text-white/50">Last 30 days</span>
+        <span className="text-lg font-semibold">{fmtUnits(last30)}<span className="text-xs text-white/50"> u</span></span>
       </section>
 
       {/* Quick-add tiles */}
@@ -467,6 +349,16 @@ function Home({
           <Tile key={t.id} tile={t} onTap={() => onQuickAdd(t)} onLongPress={() => onLongPressTile(t)} />
         ))}
       </section>
+
+      {!isViewingToday && (
+        <button
+          onClick={onJumpToToday}
+          className="mt-3 w-full text-center text-xs text-amber-200/90 bg-amber-700/15 hover:bg-amber-700/25 rounded-lg py-2"
+          title="Tap to switch back to today"
+        >
+          Logging on <span className="font-medium">{selectedLabel}</span> — tap to switch to today
+        </button>
+      )}
 
       <div className="mt-3 grid grid-cols-2 gap-3">
         <button
