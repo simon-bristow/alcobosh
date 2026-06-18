@@ -57,24 +57,35 @@ For each real calendar day, compute:
 
 **Tooltip**: `<Date>: X.Xu | Alco free day | No entry`.
 
-## Summary card
+## Stats table (`StatsTable`)
 
-Below the grid:
+Below the grid, a two-column comparison table — **7 days** vs **30 days** — both rolling windows anchored at today (not the displayed month). Rendered by the `StatsTable` component from two `windowStats()` results (`stats7`, `stats30`), computed in `Calendar` via `useMemo`.
 
-- **Last 30 days** — sum of real units across the last 30 days inclusive of today (anchored at today, not the displayed month). Survives month boundary changes.
-- **Month total** — sum of real units in the displayed month only.
-- **Drinking days (month)** — count of distinct dates in the displayed month with `u > 0`.
-- **Alco free days (month)** — count of distinct dates with `free && !(u > 0)` in the displayed month (a real drink supersedes a free-day marker).
+Layout is a `grid-cols-[1fr_4.5rem_4.5rem]`: a label column plus two right-aligned, `tabular-nums` value columns. Header row reads `Stats | 7 days | 30 days`.
 
-The Last 30 days figure is passed in from `App.jsx` (`last30` memo). The rest is computed locally from the `cells` array.
+Rows:
+
+| Row | Value | Notes |
+|---|---|---|
+| Total | `X.Xu` | sum of real units in the window |
+| Daily average | `X.Xu` | `total / days` (averaged across **all** calendar days in the window, not just drinking days) |
+| Highest day | `X.Xu` or `—` | peak single-day total among drinking days; `—` when no drinking days. Coloured red when `>= settings.dailyWarn`. |
+| Lowest day | `X.Xu` or `—` | lowest single-day total among drinking days (excludes zero days); `—` when none |
+| Drinking days | `N / 7` or `N / 30` | days with `u > 0` |
+| Alco-free days | `N / 7` or `N / 30` | days with zero real units (`days − drinkingDays`); coloured burnt gold (`text-yellow-200`) |
+
+Caption below: *"Rolling windows ending today."*
+
+The previous month-scoped summary (Month total / Drinking days (month) / Alco free days (month)) was replaced by this rolling table.
 
 ## Source helpers
 
 `units.js`:
 - `unitsByDay(drinks)` → `{ [isoDate]: number }` — sums real drink units per day
 - `freeDaysByDay(drinks)` → `{ [isoDate]: true }` — set of free-day dates
+- `windowStats(drinks, days, today?)` → `{ days, total, avg, high, low, drinkingDays, afDays }` — rolling-window aggregate over the last `days` calendar days inclusive of today. `high`/`low` are peak/lowest **drinking-day** totals (both `0` when no drinking days); `afDays = days − drinkingDays`.
 
-Both filter via the canonical `isReal` / `isFreeDay` predicates.
+All filter via the canonical `isReal` / `isFreeDay` predicates.
 
 ## Future enhancements (not implemented)
 

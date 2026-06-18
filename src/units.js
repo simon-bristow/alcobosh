@@ -125,3 +125,37 @@ export function freeDaysByDay(drinks) {
   })
   return m
 }
+
+// Rolling-window stats over the last `days` calendar days (inclusive of today).
+// total/avg/high/low are in units; drinkingDays/afDays are counts.
+// `high`/`low` are the peak and lowest single-day totals among drinking days
+// (days with units > 0); both 0 when there were no drinking days.
+// `afDays` counts every day in the window with zero real units.
+export function windowStats(drinks, days, today = new Date()) {
+  const unitsMap = unitsByDay(drinks)
+  const end = startOfDay(today)
+  let total = 0
+  let drinkingDays = 0
+  let high = 0
+  let low = Infinity
+  for (let i = 0; i < days; i++) {
+    const d = new Date(end)
+    d.setDate(d.getDate() - i)
+    const u = unitsMap[isoDate(d)] || 0
+    total += u
+    if (u > 0) {
+      drinkingDays++
+      if (u > high) high = u
+      if (u < low) low = u
+    }
+  }
+  return {
+    days,
+    total,
+    avg: total / days,
+    high: drinkingDays > 0 ? high : 0,
+    low: drinkingDays > 0 ? low : 0,
+    drinkingDays,
+    afDays: days - drinkingDays,
+  }
+}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import {
   calcUnits,
   fmtUnits,
@@ -12,6 +12,7 @@ import {
   isFreeDay,
   unitsByDay,
   freeDaysByDay,
+  windowStats,
 } from './units'
 import { initStore, subscribe, add, update, remove, isConfigured, startPair, completePair } from './store'
 
@@ -75,14 +76,6 @@ export default function App() {
     }
     return { days, total, end }
   }, [drinks, windowEnd])
-
-  // Last 30 days total (real drinks only) — anchored at today, used on Cal.
-  const last30 = useMemo(() => {
-    const cutoff = new Date(now)
-    cutoff.setDate(cutoff.getDate() - 29)
-    cutoff.setHours(0, 0, 0, 0)
-    return drinks.filter(isReal).reduce((s, d) => (d.at >= cutoff ? s + d.units : s), 0)
-  }, [drinks])
 
   const today = startOfDay(now)
   const isCurrent7 = sameDay(windowEnd, today)
@@ -164,7 +157,6 @@ export default function App() {
         <Calendar
           drinks={drinks}
           settings={settings}
-          last30={last30}
           onPickDay={(d) => { setViewDate(d); setScreen('home') }}
         />
       )}
@@ -499,12 +491,48 @@ function Bar({ pct, state }) {
   )
 }
 
-function Calendar({ drinks, settings, last30, onPickDay }) {
+function StatsTable({ stats7, stats30, settings }) {
+  const u = (n) => `${fmtUnits(n)}u`
+  const dayVal = (s, n) => (s.drinkingDays > 0 ? u(n) : '—')
+  const highClass = (s) => (s.high >= settings.dailyWarn ? 'text-red-300' : 'text-white/80')
+
+  const rows = [
+    { label: 'Total', a: u(stats7.total), b: u(stats30.total) },
+    { label: 'Daily average', a: u(stats7.avg), b: u(stats30.avg) },
+    { label: 'Highest day', a: dayVal(stats7, stats7.high), b: dayVal(stats30, stats30.high), aCls: highClass(stats7), bCls: highClass(stats30) },
+    { label: 'Lowest day', a: dayVal(stats7, stats7.low), b: dayVal(stats30, stats30.low) },
+    { label: 'Drinking days', a: `${stats7.drinkingDays} / 7`, b: `${stats30.drinkingDays} / 30` },
+    { label: 'Alco-free days', a: `${stats7.afDays} / 7`, b: `${stats30.afDays} / 30`, aCls: 'text-yellow-200', bCls: 'text-yellow-200' },
+  ]
+
+  return (
+    <div className="mt-4 rounded-2xl bg-white/5 p-4">
+      <div className="grid grid-cols-[1fr_4.5rem_4.5rem] gap-y-2 text-xs items-center">
+        <div className="text-white/40 font-medium">Stats</div>
+        <div className="text-right text-white/50 font-medium">7 days</div>
+        <div className="text-right text-white/50 font-medium">30 days</div>
+        {rows.map((r) => (
+          <Fragment key={r.label}>
+            <div className="text-white/60">{r.label}</div>
+            <div className={`text-right tabular-nums ${r.aCls || 'text-white/80'}`}>{r.a}</div>
+            <div className={`text-right tabular-nums ${r.bCls || 'text-white/80'}`}>{r.b}</div>
+          </Fragment>
+        ))}
+      </div>
+      <p className="text-[10px] text-white/30 mt-3">Rolling windows ending today.</p>
+    </div>
+  )
+}
+
+function Calendar({ drinks, settings, onPickDay }) {
   const today = new Date()
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
 
   const unitsMap = useMemo(() => unitsByDay(drinks), [drinks])
   const freeMap = useMemo(() => freeDaysByDay(drinks), [drinks])
+
+  const stats7 = useMemo(() => windowStats(drinks, 7), [drinks])
+  const stats30 = useMemo(() => windowStats(drinks, 30), [drinks])
 
   const monthStart = new Date(month.getFullYear(), month.getMonth(), 1)
   const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0)
@@ -517,9 +545,6 @@ function Calendar({ drinks, settings, last30, onPickDay }) {
   for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(month.getFullYear(), month.getMonth(), d))
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const monthTotal = cells.reduce((s, c) => (c ? s + (unitsMap[isoDate(c)] || 0) : s), 0)
-  const realDays = cells.filter((c) => c && (unitsMap[isoDate(c)] || 0) > 0).length
-  const freeDayCount = cells.filter((c) => c && freeMap[isoDate(c)] && !(unitsMap[isoDate(c)] > 0)).length
   const isCurrentMonth = month.getMonth() === today.getMonth() && month.getFullYear() === today.getFullYear()
 
   return (
@@ -581,12 +606,7 @@ function Calendar({ drinks, settings, last30, onPickDay }) {
         })}
       </div>
 
-      <div className="mt-4 rounded-2xl bg-white/5 p-4 text-xs space-y-1">
-        <div className="flex justify-between"><span className="text-white/60">Last 30 days</span><span>{fmtUnits(last30 ?? 0)}u</span></div>
-        <div className="flex justify-between"><span className="text-white/60">Month total</span><span>{fmtUnits(monthTotal)}u</span></div>
-        <div className="flex justify-between"><span className="text-white/60">Drinking days (month)</span><span>{realDays}</span></div>
-        <div className="flex justify-between"><span className="text-white/60">Alco free days (month)</span><span>{freeDayCount}</span></div>
-      </div>
+      <StatsTable stats7={stats7} stats30={stats30} settings={settings} />
 
       <p className="text-[11px] text-white/30 mt-3 text-center">Tap a day to jump to it</p>
     </div>
