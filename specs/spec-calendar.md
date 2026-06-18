@@ -1,6 +1,6 @@
 # Spec — Calendar view
 
-Month grid showing total units consumed per day, with free-day markers and at-a-glance month stats. Accessed via the "Cal" header tab.
+Month grid showing total units consumed per day, with alco-free-day markers and at-a-glance stats. Accessed via the "Cal" header tab.
 
 ## Layout
 
@@ -8,12 +8,13 @@ Month grid showing total units consumed per day, with free-day markers and at-a-
 ←   <Month YYYY>   →
 
 M T W T F S S
-[grid of day cells, 6 rows max]
+[grid of day cells, 5–6 rows]
 
 [summary card]
-  Month total       X.Xu
-  Drinking days     N
-  Free days marked  N
+  Last 30 days             X.Xu
+  Month total              X.Xu
+  Drinking days (month)    N
+  Alco free days (month)   N
 ```
 
 ## Month navigation
@@ -35,32 +36,37 @@ For each real calendar day, compute:
 - `free = freeDaysByDay(drinks)[isoDate]` — boolean, true if a free-day marker exists that day
 - `isToday`, `future` from a single `today = new Date()` reference
 
-**Background color** (in priority):
+**Background colour** (in priority):
+
 | Condition | bg |
 |---|---|
 | `u >= settings.dailyWarn` | `bg-red-500/40` |
 | `u > 0` | `bg-emerald-500/30` |
-| free marker only | `bg-emerald-500/10` |
+| free marker only | `bg-yellow-700/30` (burnt gold) |
 | otherwise | `bg-white/5` |
 
 **Text inside the cell**:
 - Day number (always)
 - Below: `fmtUnits(u)` if `u > 0`
-- Below: `✓` if `free && !u && !future`
+- Below: gold `✓` (`text-yellow-200`) if `free && !u && !future`
 - Future days: text fades to `text-white/20`
 
 **Today**: cell gets `ring-2 ring-white/40` to highlight.
 
-**Tooltip**: `title="<Date>: X.Xu" / "Free day" / "No entry"`.
+**Tap**: each non-future day cell is a `<button>`; tap calls `onPickDay(date)` → updates `viewDate` and switches `screen` back to `home`.
+
+**Tooltip**: `<Date>: X.Xu | Alco free day | No entry`.
 
 ## Summary card
 
 Below the grid:
-- **Month total** — sum of units across all real drinks dated in the displayed month
-- **Drinking days** — count of distinct dates with `u > 0`
-- **Free days marked** — count of distinct dates with `free && !(u > 0)` (a real drink supersedes a free-day marker for this count)
 
-All three derived from the same `cells` array used to render the grid (already filtered to in-month dates).
+- **Last 30 days** — sum of real units across the last 30 days inclusive of today (anchored at today, not the displayed month). Survives month boundary changes.
+- **Month total** — sum of real units in the displayed month only.
+- **Drinking days (month)** — count of distinct dates in the displayed month with `u > 0`.
+- **Alco free days (month)** — count of distinct dates with `free && !(u > 0)` in the displayed month (a real drink supersedes a free-day marker).
+
+The Last 30 days figure is passed in from `App.jsx` (`last30` memo). The rest is computed locally from the `cells` array.
 
 ## Source helpers
 
@@ -69,17 +75,6 @@ All three derived from the same `cells` array used to render the grid (already f
 - `freeDaysByDay(drinks)` → `{ [isoDate]: true }` — set of free-day dates
 
 Both filter via the canonical `isReal` / `isFreeDay` predicates.
-
-## Day-cell tap
-
-Each non-future day cell is a `<button>`. Tapping it calls the parent's `onPickDay(date)`, which:
-
-1. Sets `viewDate = startOfDay(date)` in `App.jsx`
-2. Switches `screen` back to `home`
-
-This is how the user navigates from the month overview to a specific day's logging UI. The Today screen's prev/next arrows then move ±1 day from there.
-
-Past-day Free Day markers can be added via this flow (jump to that day in Cal → Free day button on Today).
 
 ## Future enhancements (not implemented)
 

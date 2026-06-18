@@ -1,10 +1,10 @@
 # Spec — Logging drinks
 
-Covers quick-add tiles (with long-press for one-off ABV), free-day marker (with celebration), custom-drink modal, units calculation, edit/delete of existing entries (including date), and the global Recent-drinks list.
+Covers quick-add tiles (with long-press for one-off ABV), the alco-free-day marker (with celebration), custom-drink modal, units calculation, edit/delete of existing entries (including date), and the global Recent-drinks list.
 
 ## Quick-add tiles
 
-Three tiles rendered on the Today screen. Each is a single tap → one drink logged with the tile's `ml` + `abv` defaults and `name = tile.label`. The entry's `at` defaults to:
+Three tiles rendered on the Home screen. Each is a single tap → one drink logged with the tile's `ml` + `abv` defaults and `name = tile.label`. The entry's `at` defaults to:
 
 - **viewDate = today** → backend uses `serverTimestamp()` (cloud) or `new Date()` (local)
 - **viewDate = past day** → noon on that day (`12:00` local time)
@@ -35,17 +35,19 @@ Implementation in `App.jsx` `useLongPress({ onLong, ms = 500 })` hook. The hook 
 
 `units.js` `migrate()` runs once when settings are loaded. If the stored `tiles` array exactly matches the old default `[pot, pint, bottle]` with default ml/ABV, it's replaced with the new default `[pot, bottle, pint]`. Customized stores are left alone.
 
-## Free day
+## Alco free day
 
-Button on the Today screen, next to "+ Custom". Logs a sentinel entry on `viewDate`:
+Button on the Home screen, next to "+ Custom". Logs a sentinel entry on `viewDate`:
 
 ```js
 { name: 'Free day', ml: 0, abv: 0, units: 0, freeDay: true, at: <viewDate-noon or serverTimestamp> }
 ```
 
+The internal `name: 'Free day'` and `freeDay: true` fields are kept on disk for back-compat. The user-facing label is **"Alco free day"** (renamed for clarity). Predicate helpers `isFreeDay()` / `isReal()` still match the same shape.
+
 ### Celebration animation
 
-Clicking the Free Day button triggers a **`Celebration`** overlay:
+Clicking the Alco free day button triggers a **`Celebration`** overlay:
 
 - 16 emoji particles (🎉 ✨ 🥳 ⭐ 💚 🌿 🎊 🙌) randomly placed across the screen, each floating upward and fading via the `floatUp` CSS keyframe
 - A central white `✓` pulses in via `burstPulse`
@@ -53,19 +55,23 @@ Clicking the Free Day button triggers a **`Celebration`** overlay:
 
 Keyframes live in `src/index.css`. The component re-randomises particle positions on each mount.
 
+### Button colour — burnt gold
+
+| State | Style |
+|---|---|
+| Active (`viewDate` has no real drinks, not yet marked) | `bg-yellow-700/30 hover:bg-yellow-700/40 text-yellow-100` |
+| Marked (free-day entry already exists on `viewDate`) | `bg-yellow-700/40 text-yellow-200 cursor-default` |
+| Disabled (real drinks already logged on `viewDate`) | `bg-white/5 text-white/30 cursor-not-allowed` |
+
+The burnt-gold theme also colours free-day cells in the home heatmap and the Cal grid (`bg-yellow-700/30` + gold `✓`), so "alco free day" reads as a single visual concept across the app.
+
 ### State machine
 
-| viewDate's entries | Button label | Enabled? | Style |
-|---|---|---|---|
-| no real drinks, no free-day marker | "Free day" | yes | `bg-orange-700/30 hover:/40 text-orange-100` |
-| no real drinks, has free-day marker | "Free day ✓" | no (already marked) | `bg-orange-700/40 text-orange-200 cursor-default` |
-| any real drinks | "Free day" | no (greyed out) | `bg-white/5 text-white/30 cursor-not-allowed` |
-
-The button uses dark orange as a deliberate non-emerald colour so it doesn't blend into the green quick-add tiles or the green "Free day ✓" badge inside the Day Total card. The celebration animation still uses mixed emoji including green hearts/leaves.
-
-The Day Total card also shows a small green "Free day ✓" line below the bar when the marker exists and no real drinks have been logged on that day.
-
-`isFreeDay(drink)` and `isReal(drink)` helpers in `units.js` are the canonical predicates. Free-day entries never contribute to weekly/daily unit totals.
+| viewDate's entries | Button label | Enabled? |
+|---|---|---|
+| no real drinks, no free-day marker | "Alco free day" | yes |
+| no real drinks, has free-day marker | "Alco free day ✓" | no (already marked) |
+| any real drinks | "Alco free day" | no (greyed out) |
 
 ## Custom drink
 
@@ -85,15 +91,15 @@ Implemented in `units.js` `calcUnits(ml, abv)`. Recomputed on every save (never 
 
 Display formatting via `fmtUnits(n)` — always 1 decimal place (`2.8`, `0.0`, `10.5`).
 
-## Recent drinks list (Today screen)
+## Recent drinks list (Home screen)
 
-Section header: **"Recent drinks"** (not "Today's drinks" — global, not viewDate-scoped).
+Section header: **"Recent drinks"**. Global, not viewDate-scoped.
 
 Source: `drinks.slice(0, 5)` (drinks come from the subscription sorted by `at` desc).
 
 Each row shows:
 - Real drink: `name · ml · ABV%` + `<DayLabel> · HH:MM · X.Xu` + Edit + Delete
-- Free-day marker: `Free day ✓` (green) + `<DayLabel> · HH:MM` + Delete only (no Edit)
+- Free-day marker: `Alco free day ✓` (gold, `text-yellow-200`) + `<DayLabel> · HH:MM` + Delete only (no Edit)
 
 `<DayLabel>` is computed by `dayLabelFor(date)`:
 - Today → `Today`
@@ -124,7 +130,7 @@ No confirmation. Optimistic UI via Firestore (or localStorage) subscription — 
 ```js
 {
   id: string,         // UUID
-  name: string|null,  // tile label or custom name; 'Free day' for markers
+  name: string|null,  // tile label or custom name; 'Free day' on markers (kept for back-compat)
   ml: number,         // 0 for free-day markers
   abv: number,        // 0 for free-day markers
   units: number,      // 0 for free-day markers; recomputed on every write otherwise
