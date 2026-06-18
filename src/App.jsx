@@ -24,6 +24,7 @@ export default function App() {
   const [editing, setEditing] = useState(null)
   const [abvEditTile, setAbvEditTile] = useState(null)
   const [viewDate, setViewDate] = useState(() => startOfDay(new Date()))
+  const [windowEnd, setWindowEnd] = useState(() => startOfDay(new Date()))
   const [celebrate, setCelebrate] = useState(false)
 
   useEffect(() => {
@@ -57,32 +58,45 @@ export default function App() {
   // 5 most recent drinks (drinks are returned sorted at desc by the subscription).
   const recent = useMemo(() => drinks.slice(0, 5), [drinks])
 
-  // Rolling last-7-day window: 7 cells, today on the right. Also the source for
-  // the home heatmap and the "7-day total" header.
+  // Rolling 7-day window: 7 cells ending at windowEnd (default today).
   const rolling7 = useMemo(() => {
     const unitsMap = unitsByDay(drinks)
     const freeMap = freeDaysByDay(drinks)
-    const today = startOfDay(now)
+    const end = startOfDay(windowEnd)
     const days = []
     let total = 0
     for (let i = 6; i >= 0; i--) {
-      const d = new Date(today)
+      const d = new Date(end)
       d.setDate(d.getDate() - i)
       const k = isoDate(d)
       const u = unitsMap[k] || 0
       total += u
       days.push({ date: d, units: u, free: !!freeMap[k] })
     }
-    return { days, total }
-  }, [drinks])
+    return { days, total, end }
+  }, [drinks, windowEnd])
 
-  // Last 30 days total (real drinks only).
+  // Last 30 days total (real drinks only) — anchored at today, used on Cal.
   const last30 = useMemo(() => {
     const cutoff = new Date(now)
     cutoff.setDate(cutoff.getDate() - 29)
     cutoff.setHours(0, 0, 0, 0)
     return drinks.filter(isReal).reduce((s, d) => (d.at >= cutoff ? s + d.units : s), 0)
   }, [drinks])
+
+  const today = startOfDay(now)
+  const isCurrent7 = sameDay(windowEnd, today)
+
+  function shiftWindowBack() {
+    const next = new Date(windowEnd)
+    next.setDate(next.getDate() - 7)
+    next.setHours(0, 0, 0, 0)
+    setWindowEnd(next)
+  }
+
+  function jumpToCurrent7() {
+    setWindowEnd(startOfDay(new Date()))
+  }
 
   async function quickAdd(tile, abvOverride) {
     if (!session) return
@@ -125,7 +139,9 @@ export default function App() {
           viewDayFreeMarker={viewDayFreeMarker}
           recent={recent}
           rolling7={rolling7}
-          last30={last30}
+          isCurrent7={isCurrent7}
+          onShiftBack={shiftWindowBack}
+          onJumpToCurrent7={jumpToCurrent7}
           onQuickAdd={quickAdd}
           onLongPressTile={setAbvEditTile}
           onCustom={() => setCustomOpen(true)}
@@ -139,6 +155,7 @@ export default function App() {
         <Calendar
           drinks={drinks}
           settings={settings}
+          last30={last30}
           onPickDay={(d) => { setViewDate(d); setScreen('home') }}
         />
       )}
@@ -275,7 +292,8 @@ function useLongPress({ onLong, ms = 500 }) {
 
 function Home({
   settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
-  streak, viewDayReal, viewDayFreeMarker, recent, rolling7, last30,
+  streak, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
+  onShiftBack, onJumpToCurrent7,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
 }) {
   const sevenTotal = rolling7.total
@@ -290,10 +308,32 @@ function Home({
 
   return (
     <>
-      {/* Rolling-7-day block: total + heatmap */}
+      {/* Rolling-7-day block: nav + total + heatmap */}
       <section className="rounded-2xl bg-white/5 p-5">
+        <div className="flex items-center justify-between mb-3 gap-2">
+          <button
+            onClick={onShiftBack}
+            aria-label="Previous 7 days"
+            className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0"
+          >←</button>
+
+          <button
+            onClick={onJumpToCurrent7}
+            disabled={isCurrent7}
+            className="text-sm text-white/80 disabled:cursor-default flex-1 text-center truncate"
+            title={isCurrent7 ? '' : 'Jump to last 7 days'}
+          >
+            {isCurrent7
+              ? 'Last 7 days'
+              : `7 days to ${rolling7.end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
+          </button>
+
+          {/* spacer to balance the left arrow */}
+          <div className="w-9 shrink-0" aria-hidden="true" />
+        </div>
+
         <div className="flex items-baseline justify-between mb-2">
-          <span className="text-sm text-white/60">Last 7 days</span>
+          <span className="text-xs text-white/50">7-day total</span>
           <span className="text-sm text-white/60">{fmtUnits(sevenTotal)} / {settings.weeklyCap} units</span>
         </div>
         <Bar pct={pct} state={weekState} />
@@ -305,7 +345,7 @@ function Home({
             const isToday = isoDate(cell.date) === todayKey
             const intensity = Math.min(1, u / settings.dailyWarn)
             const bg = u === 0
-              ? free ? 'bg-emerald-500/15' : 'bg-white/5'
+              ? free ? 'bg-yellow-700/30' : 'bg-white/5'
               : u >= settings.dailyWarn
                 ? 'bg-red-500/70'
                 : 'bg-emerald-500'
@@ -317,12 +357,12 @@ function Home({
                   onClick={() => onPickDay?.(cell.date)}
                   className={`w-full h-12 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : isToday ? 'ring-1 ring-white/20' : ''} hover:ring-2 hover:ring-white/30 flex items-center justify-center text-[11px] leading-none touch-manipulation`}
                   style={u > 0 && u < settings.dailyWarn ? { opacity: 0.3 + intensity * 0.7 } : undefined}
-                  title={`${cell.date.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Free day' : 'no entry'}`}
+                  title={`${cell.date.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Alco free day' : 'no entry'}`}
                 >
                   {u > 0 ? (
                     <span className="font-medium text-white">{fmtUnits(u)}</span>
                   ) : free ? (
-                    <span className="text-emerald-300">✓</span>
+                    <span className="text-yellow-200">✓</span>
                   ) : null}
                 </button>
                 <div className="text-[10px] text-white/40 mt-1">{dow}</div>
@@ -335,12 +375,6 @@ function Home({
             Local mode — Firebase not configured. Add your config in <code>src/firebase.js</code> to sync.
           </p>
         )}
-      </section>
-
-      {/* Last 30 days */}
-      <section className="mt-3 rounded-2xl bg-white/5 p-3 flex items-baseline justify-between">
-        <span className="text-[11px] text-white/50">Last 30 days</span>
-        <span className="text-lg font-semibold">{fmtUnits(last30)}<span className="text-xs text-white/50"> u</span></span>
       </section>
 
       {/* Quick-add tiles */}
@@ -370,12 +404,12 @@ function Home({
           disabled={!showFreeDayBtn || freeDayMarked}
           className={`rounded-2xl py-3 text-sm transition ${
             freeDayMarked
-              ? 'bg-orange-700/40 text-orange-200 cursor-default'
+              ? 'bg-yellow-700/40 text-yellow-200 cursor-default'
               : showFreeDayBtn
-                ? 'bg-orange-700/30 hover:bg-orange-700/40 text-orange-100'
+                ? 'bg-yellow-700/30 hover:bg-yellow-700/40 text-yellow-100'
                 : 'bg-white/5 text-white/30 cursor-not-allowed'
           }`}
-        >{freeDayMarked ? 'Free day ✓' : 'Free day'}</button>
+        >{freeDayMarked ? 'Alco free day ✓' : 'Alco free day'}</button>
       </div>
 
       <section className="mt-6">
@@ -393,8 +427,8 @@ function Home({
               return (
                 <li key={d.id} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 gap-2">
                   <div className="min-w-0">
-                    <div className={`text-sm truncate ${free ? 'text-emerald-300' : ''}`}>
-                      {free ? 'Free day ✓' : `${d.name || 'Drink'} · ${d.ml}ml · ${d.abv}%`}
+                    <div className={`text-sm truncate ${free ? 'text-yellow-200' : ''}`}>
+                      {free ? 'Alco free day ✓' : `${d.name || 'Drink'} · ${d.ml}ml · ${d.abv}%`}
                     </div>
                     <div className="text-xs text-white/50">
                       {dayLabelFor(d.at)} · {d.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -449,7 +483,7 @@ function Bar({ pct, state }) {
   )
 }
 
-function Calendar({ drinks, settings, onPickDay }) {
+function Calendar({ drinks, settings, last30, onPickDay }) {
   const today = new Date()
   const [month, setMonth] = useState(() => new Date(today.getFullYear(), today.getMonth(), 1))
 
@@ -509,7 +543,7 @@ function Calendar({ drinks, settings, onPickDay }) {
           let unitColor = 'text-white/60'
           if (u >= settings.dailyWarn) { bg = 'bg-red-500/40'; textColor = 'text-white'; unitColor = 'text-red-100' }
           else if (u > 0) { bg = 'bg-emerald-500/30'; textColor = 'text-white'; unitColor = 'text-emerald-200' }
-          else if (free) { bg = 'bg-emerald-500/10'; textColor = 'text-emerald-300'; unitColor = 'text-emerald-300/80' }
+          else if (free) { bg = 'bg-yellow-700/30'; textColor = 'text-yellow-200'; unitColor = 'text-yellow-200/80' }
           if (future) { textColor = 'text-white/20'; unitColor = 'text-white/20' }
 
           return (
@@ -518,13 +552,13 @@ function Calendar({ drinks, settings, onPickDay }) {
               onClick={() => !future && onPickDay?.(startOfDay(cell))}
               disabled={future}
               className={`aspect-square rounded flex flex-col items-center justify-center ${bg} ${isToday ? 'ring-2 ring-white/40' : ''} ${future ? 'cursor-default' : 'hover:ring-2 hover:ring-white/30'}`}
-              title={`${cell.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Free day' : 'No entry'}`}
+              title={`${cell.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Alco free day' : 'No entry'}`}
             >
               <div className={`text-xs ${textColor}`}>{cell.getDate()}</div>
               {u > 0 ? (
                 <div className={`text-[10px] ${unitColor}`}>{fmtUnits(u)}</div>
               ) : free && !future ? (
-                <div className="text-[10px] text-emerald-300">✓</div>
+                <div className="text-[10px] text-yellow-200">✓</div>
               ) : null}
             </button>
           )
@@ -532,9 +566,10 @@ function Calendar({ drinks, settings, onPickDay }) {
       </div>
 
       <div className="mt-4 rounded-2xl bg-white/5 p-4 text-xs space-y-1">
+        <div className="flex justify-between"><span className="text-white/60">Last 30 days</span><span>{fmtUnits(last30 ?? 0)}u</span></div>
         <div className="flex justify-between"><span className="text-white/60">Month total</span><span>{fmtUnits(monthTotal)}u</span></div>
-        <div className="flex justify-between"><span className="text-white/60">Drinking days</span><span>{realDays}</span></div>
-        <div className="flex justify-between"><span className="text-white/60">Free days marked</span><span>{freeDayCount}</span></div>
+        <div className="flex justify-between"><span className="text-white/60">Drinking days (month)</span><span>{realDays}</span></div>
+        <div className="flex justify-between"><span className="text-white/60">Alco free days (month)</span><span>{freeDayCount}</span></div>
       </div>
 
       <p className="text-[11px] text-white/30 mt-3 text-center">Tap a day to jump to it</p>

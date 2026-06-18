@@ -1,38 +1,57 @@
-# Spec — Rolling 7-day block, Last 30 days, AF Streak
+# Spec — Rolling 7-day block, AF Streak
 
-Covers the panels at the top of the Home screen — a rolling 7-day total with heatmap, the last-30-day total, and the alcohol-free-day counter.
+Covers the top panel of the Home screen — a 7-day window with heatmap that can be navigated backward, plus the alcohol-free-day streak.
 
-The earlier "Day panel" (with prev/next day arrows and the daily-warn bar) was removed; the rolling heatmap is the single source of per-day state on Home. The "viewDate" concept is preserved but is now only set implicitly (tap a cell, or pick a day in Cal); it controls which date new entries are logged against.
+The Last 30 days total used to live here too — it now lives on the Cal screen (`spec-calendar.md`).
 
-Free-day markers are filtered out of all unit totals — they only affect the streak and the inline "✓" cell badge.
+Free-day markers ("Alco free days" in UI) are filtered out of all unit totals — they only affect the streak and the inline gold "✓" cell badge.
 
-## Rolling 7-day block (top)
+## Rolling 7-day block
 
-One card with:
+One card with three rows of content.
 
-- **Header**: `Last 7 days` on the left, `X.X / N units` on the right (always compared against `settings.weeklyCap`).
-- **Bar**: same `<Bar pct={...} state={...} />` component; states use the weekly thresholds (`>= cap` red, `>= 0.75 × cap` amber, else emerald).
-- **Heatmap**: 7 cells in chronological order — `today − 6` on the left through `today` on the right. The window does NOT slide — it's always anchored at today.
+### Row 1 — window navigation
 
-### Cell rendering
+| Element | Behavior |
+|---|---|
+| `←` | Always enabled. Shifts `windowEnd` back 7 days (no forward limit). |
+| Label | `Last 7 days` when `windowEnd === today`. Otherwise `7 days to <D MMM>`. Clickable when not on the current window → resets `windowEnd` to today. |
+| (right) | Empty `w-9` spacer to balance the left arrow visually — there's no forward arrow. |
+
+`windowEnd` is a piece of state in `App.jsx` (default `startOfDay(today)`). Shifting it never goes past today: the only way "forward" is the jump-to-current label.
+
+### Row 2 — 7-day total
+
+`7-day total` label on the left, `X.X / N units` on the right. Compared against `settings.weeklyCap`.
+
+The progress bar (`<Bar>`) uses the standard `ok/warn/over` colour thresholds based on the 7-day total vs the weekly cap.
+
+### Row 3 — heatmap
+
+7 cells, chronological order: `windowEnd − 6` on the left through `windowEnd` on the right.
+
+Cell rules:
 
 | Condition | Background |
 |---|---|
 | `u >= dailyWarn` | `bg-red-500/70` |
 | `0 < u < dailyWarn` | `bg-emerald-500` (opacity `0.3 → 1.0` by intensity) |
-| `u == 0 && free` | `bg-emerald-500/15` |
+| `u == 0 && free` | `bg-yellow-700/30` (burnt gold for alco-free days) |
 | empty | `bg-white/5` |
 
-- Ring `ring-2 ring-white/40` for the cell whose date equals `viewDate`
-- Ring `ring-1 ring-white/20` for today (subtler, so it's still findable when a past day is selected)
-- All cells are clickable: tap sets `viewDate` to that day. The window does not shift; the ring moves.
+Rings:
+- `ring-2 ring-white/40` for the cell whose date equals `viewDate`
+- `ring-1 ring-white/20` for today (when in window and not selected)
+- `hover:ring-2 hover:ring-white/30` on all cells
 
-Cell content:
+Content:
 - `u > 0` → white `fmtUnits(u)` text
-- `free && u === 0` → emerald `✓`
+- `free && u === 0` → `text-yellow-200` `✓`
 - else → blank
 
-Day-of-week letter (`M/T/W/T/F/S/S`) is computed per cell from the date — it rotates as the calendar advances.
+Day-of-week letter (`M/T/W/T/F/S/S`) is computed per cell from the date — it rotates as the window shifts.
+
+Tapping a cell sets `viewDate`. The 7-day window does NOT slide on cell tap — only the explicit ← arrow / jump-to-current label move it.
 
 ## "Logging on …" banner
 
@@ -40,24 +59,13 @@ When `viewDate !== today`, a small amber pill is shown above the action buttons:
 
 > Logging on **Mon 17 Jun** — tap to switch to today
 
-Tap calls `onJumpToToday` and resets `viewDate` to today. This is the single explicit indicator that subsequent quick-add / custom / free-day actions will land on a date other than today.
-
-When `viewDate === today` the banner is hidden.
-
-## Last 30 days card
-
-A single full-width card below the rolling-7 block:
-
-- `Last 30 days` label on the left
-- `X.X u` total on the right (real drinks only, last 30 calendar days inclusive of today)
-
-The previous "Last 7 days" stat card was removed — it's redundant with the new rolling-7 block's header total.
+Tap calls `onJumpToToday` and resets `viewDate` to today.
 
 ## AF-day streak
 
 Counts consecutive alcohol-free days **ending at most yesterday** (or today if it's still alcohol-free). Implementation in `units.js` `afStreak()`:
 
-1. Build `daysWithRealDrinks` set from `drinks.filter(isReal)` keyed by ISO date — free-day markers are NOT included here, so explicitly-marked free days extend the streak.
+1. Build `daysWithRealDrinks` set from `drinks.filter(isReal)` keyed by ISO date — free-day markers are NOT included here, so explicitly-marked alco-free days extend the streak.
 2. If today has any real drink → return 0.
 3. Walk backwards day-by-day; stop when a day has any real drink.
 4. Cap iterations at 365.
