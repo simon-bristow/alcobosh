@@ -94,6 +94,14 @@ export default function App() {
     setWindowEnd(next)
   }
 
+  function shiftWindowForward() {
+    const next = new Date(windowEnd)
+    next.setDate(next.getDate() + 7)
+    next.setHours(0, 0, 0, 0)
+    const todayStart = startOfDay(new Date())
+    setWindowEnd(next > todayStart ? todayStart : next)
+  }
+
   function jumpToCurrent7() {
     setWindowEnd(startOfDay(new Date()))
   }
@@ -141,6 +149,7 @@ export default function App() {
           rolling7={rolling7}
           isCurrent7={isCurrent7}
           onShiftBack={shiftWindowBack}
+          onShiftForward={shiftWindowForward}
           onJumpToCurrent7={jumpToCurrent7}
           onQuickAdd={quickAdd}
           onLongPressTile={setAbvEditTile}
@@ -293,7 +302,7 @@ function useLongPress({ onLong, ms = 500 }) {
 function Home({
   settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
   streak, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
-  onShiftBack, onJumpToCurrent7,
+  onShiftBack, onShiftForward, onJumpToCurrent7,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
 }) {
   const sevenTotal = rolling7.total
@@ -328,8 +337,15 @@ function Home({
               : `7 days to ${rolling7.end.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
           </button>
 
-          {/* spacer to balance the left arrow */}
-          <div className="w-9 shrink-0" aria-hidden="true" />
+          {isCurrent7 ? (
+            <div className="w-9 shrink-0" aria-hidden="true" />
+          ) : (
+            <button
+              onClick={onShiftForward}
+              aria-label="Next 7 days"
+              className="rounded-lg bg-white/5 hover:bg-white/10 px-3 py-1 text-sm shrink-0"
+            >→</button>
+          )}
         </div>
 
         <div className="flex items-baseline justify-between mb-2">

@@ -14,11 +14,11 @@ One card with three rows of content.
 
 | Element | Behavior |
 |---|---|
-| `←` | Always enabled. Shifts `windowEnd` back 7 days (no forward limit). |
+| `←` | Always enabled. Shifts `windowEnd` back 7 days (no backward limit). |
 | Label | `Last 7 days` when `windowEnd === today`. Otherwise `7 days to <D MMM>`. Clickable when not on the current window → resets `windowEnd` to today. |
-| (right) | Empty `w-9` spacer to balance the left arrow visually — there's no forward arrow. |
+| `→` | Shown **only** when `windowEnd !== today` (i.e. after going back). Shifts `windowEnd` forward 7 days, clamped so it never lands past today. When on the current window the slot is an empty `w-9` spacer instead. |
 
-`windowEnd` is a piece of state in `App.jsx` (default `startOfDay(today)`). Shifting it never goes past today: the only way "forward" is the jump-to-current label.
+`windowEnd` is a piece of state in `App.jsx` (default `startOfDay(today)`). Forward navigation (via `→` or the jump-to-current label) is clamped to today — the window can never show future days.
 
 ### Row 2 — 7-day total
 
