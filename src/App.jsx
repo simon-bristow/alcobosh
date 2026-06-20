@@ -13,6 +13,9 @@ import {
   unitsByDay,
   freeDaysByDay,
   windowStats,
+  makeTile,
+  MAX_TILES,
+  HOME_TILES,
 } from './units'
 import { initStore, subscribe, add, update, remove, isConfigured, startPair, completePair } from './store'
 
@@ -308,6 +311,9 @@ function Home({
   const selectedLabel = dayLabel(viewDate, isViewingToday)
   const todayKey = isoDate(new Date())
 
+  const homeTiles = settings.tiles.slice(0, HOME_TILES)
+  const extraTiles = settings.tiles.slice(HOME_TILES)
+
   return (
     <>
       {/* Rolling-7-day block: nav + total + heatmap */}
@@ -386,9 +392,9 @@ function Home({
         )}
       </section>
 
-      {/* Quick-add tiles */}
+      {/* Quick-add tiles — first HOME_TILES show as buttons */}
       <section className="mt-4 grid grid-cols-3 gap-3">
-        {settings.tiles.map((t) => (
+        {homeTiles.map((t) => (
           <Tile key={t.id} tile={t} onTap={() => onQuickAdd(t)} onLongPress={() => onLongPressTile(t)} />
         ))}
       </section>
@@ -403,7 +409,23 @@ function Home({
         </button>
       )}
 
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className={`mt-3 grid ${extraTiles.length ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
+        {extraTiles.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => {
+              const t = extraTiles.find((x) => x.id === e.target.value)
+              if (t) onQuickAdd(t)
+            }}
+            aria-label="More drinks"
+            className="rounded-2xl bg-white/5 hover:bg-white/10 py-3 px-2 text-sm text-center appearance-none cursor-pointer"
+          >
+            <option value="" disabled>More ▾</option>
+            {extraTiles.map((t) => (
+              <option key={t.id} value={t.id}>{t.label} · {t.ml}ml {t.abv}%</option>
+            ))}
+          </select>
+        )}
         <button
           onClick={onCustom}
           className="rounded-2xl bg-white/5 hover:bg-white/10 py-3 text-sm"
@@ -643,6 +665,22 @@ function Settings({ settings, onChange, session }) {
   function updateTile(id, p) {
     onChange({ ...settings, tiles: settings.tiles.map((t) => (t.id === id ? { ...t, ...p } : t)) })
   }
+  function addTile() {
+    if (settings.tiles.length >= MAX_TILES) return
+    onChange({ ...settings, tiles: [...settings.tiles, makeTile()] })
+  }
+  function removeTile(id) {
+    if (settings.tiles.length <= 1) return
+    onChange({ ...settings, tiles: settings.tiles.filter((t) => t.id !== id) })
+  }
+  function moveTile(id, dir) {
+    const tiles = [...settings.tiles]
+    const i = tiles.findIndex((t) => t.id === id)
+    const j = i + dir
+    if (i < 0 || j < 0 || j >= tiles.length) return
+    ;[tiles[i], tiles[j]] = [tiles[j], tiles[i]]
+    onChange({ ...settings, tiles })
+  }
 
   async function genCode() {
     setPairMsg('')
@@ -669,14 +707,46 @@ function Settings({ settings, onChange, session }) {
 
       <section className="rounded-2xl bg-white/5 p-4 space-y-3">
         <h2 className="text-sm font-medium">Quick-add tiles</h2>
-        {settings.tiles.map((t) => (
-          <div key={t.id} className="grid grid-cols-[1fr_5rem_5rem] gap-2 items-center">
-            <input className="bg-white/5 rounded px-2 py-1 text-sm" value={t.label} onChange={(e) => updateTile(t.id, { label: e.target.value })} />
-            <input className="bg-white/5 rounded px-2 py-1 text-sm" type="number" value={t.ml} onChange={(e) => updateTile(t.id, { ml: Number(e.target.value) })} />
-            <input className="bg-white/5 rounded px-2 py-1 text-sm" type="number" step="0.1" value={t.abv} onChange={(e) => updateTile(t.id, { abv: Number(e.target.value) })} />
-          </div>
-        ))}
-        <p className="text-xs text-white/40">Label · ml · ABV%</p>
+        <p className="text-xs text-white/40">
+          The top {HOME_TILES} (★) show as buttons on Home. The rest appear in the Home “More ▾” dropdown. Reorder to choose which show.
+        </p>
+        <div className="space-y-2">
+          {settings.tiles.map((t, i) => {
+            const onHome = i < HOME_TILES
+            return (
+              <div key={t.id} className="rounded-lg bg-white/5 p-2 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-xs w-4 shrink-0 text-center ${onHome ? 'text-yellow-300' : 'text-white/30'}`}>{onHome ? '★' : i + 1}</span>
+                  <input
+                    className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm"
+                    value={t.label}
+                    onChange={(e) => updateTile(t.id, { label: e.target.value })}
+                  />
+                  <button onClick={() => moveTile(t.id, -1)} disabled={i === 0} aria-label="Move up" className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▲</button>
+                  <button onClick={() => moveTile(t.id, 1)} disabled={i === settings.tiles.length - 1} aria-label="Move down" className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▼</button>
+                  <button onClick={() => removeTile(t.id)} disabled={settings.tiles.length <= 1} aria-label="Remove tile" className="text-xs px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200 disabled:opacity-30">✕</button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className="flex items-center gap-2 text-xs text-white/50">
+                    ml
+                    <input className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm" type="number" value={t.ml} onChange={(e) => updateTile(t.id, { ml: Number(e.target.value) })} />
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-white/50">
+                    %
+                    <input className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm" type="number" step="0.1" value={t.abv} onChange={(e) => updateTile(t.id, { abv: Number(e.target.value) })} />
+                  </label>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+        <button
+          onClick={addTile}
+          disabled={settings.tiles.length >= MAX_TILES}
+          className="w-full rounded-lg bg-white/5 hover:bg-white/10 py-2 text-sm disabled:opacity-30 disabled:hover:bg-white/5"
+        >
+          + Add tile {settings.tiles.length >= MAX_TILES ? `(max ${MAX_TILES})` : `(${settings.tiles.length}/${MAX_TILES})`}
+        </button>
       </section>
 
       <section className="rounded-2xl bg-white/5 p-4 space-y-3">

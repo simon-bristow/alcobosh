@@ -28,6 +28,7 @@ Single-page app with a top-nav switching between three views:
 | Week start | Monday | `units.js` `weekBounds()` |
 | Unit formula | `(ml × ABV%) / 1000` | `units.js` `calcUnits()` |
 | Default tiles | Pot 285/5, Bottle 330/5, Pint 568/5 | `units.js` `DEFAULT_TILES` |
+| Tile limits | 1–10 configured; first 3 on Home, rest in dropdown | `units.js` `MAX_TILES` (10), `HOME_TILES` (3) |
 | Long-press threshold | 500ms (≤10px movement) | `App.jsx` `useLongPress()` |
 | Free-day shape | `{ freeDay: true, units: 0, ml: 0, abv: 0, name: 'Free day' }` | `App.jsx` `logFreeDay()` |
 | Recent-drinks list size | 5 most recent | `App.jsx` `recent = drinks.slice(0, 5)` |

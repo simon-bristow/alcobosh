@@ -4,7 +4,7 @@ Covers quick-add tiles (with long-press for one-off ABV), the alco-free-day mark
 
 ## Quick-add tiles
 
-Three tiles rendered on the Home screen. Each is a single tap → one drink logged with the tile's `ml` + `abv` defaults and `name = tile.label`. The entry's `at` defaults to:
+The first `HOME_TILES` (3) configured tiles render as big buttons on the Home screen (`settings.tiles.slice(0, 3)`). Tiles beyond the first 3 are reachable via the **"More ▾" dropdown** in the action row (see below). Each tile tap → one drink logged with the tile's `ml` + `abv` defaults and `name = tile.label`. The entry's `at` defaults to:
 
 - **viewDate = today** → backend uses `serverTimestamp()` (cloud) or `new Date()` (local)
 - **viewDate = past day** → noon on that day (`12:00` local time)
@@ -33,7 +33,16 @@ Implementation in `App.jsx` `useLongPress({ onLong, ms = 500 })` hook. The hook 
 
 ### Tile reorder migration
 
-`units.js` `migrate()` runs once when settings are loaded. If the stored `tiles` array exactly matches the old default `[pot, pint, bottle]` with default ml/ABV, it's replaced with the new default `[pot, bottle, pint]`. Customized stores are left alone.
+`units.js` `migrate()` runs once when settings are loaded. If the stored `tiles` array exactly matches the old default `[pot, pint, bottle]` with default ml/ABV, it's replaced with the new default `[pot, bottle, pint]`. Customized stores (and any store with a tile count ≠ 3) are left alone.
+
+## "More ▾" dropdown (extra tiles)
+
+When `settings.tiles` has more than `HOME_TILES` (3) entries, a native `<select>` is rendered in the action row, left of "+ Custom" and "Alco free day" (the row switches from 2 to 3 columns). It is omitted entirely when there are ≤ 3 tiles.
+
+- The closed control shows the placeholder `More ▾` (a disabled `value=""` option).
+- Options are `settings.tiles.slice(HOME_TILES)`, each labelled `<label> · <ml>ml <abv>%`.
+- The select is **controlled with `value=""`**: choosing an option fires `onChange` → logs that tile via `quickAdd(tile)` on the current `viewDate`, then snaps the control straight back to the placeholder (so the same drink can be picked again).
+- Dropdown tiles log their defaults; the long-press ABV override is a Home-button-only affordance.
 
 ## Alco free day
 

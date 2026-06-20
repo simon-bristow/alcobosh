@@ -13,13 +13,20 @@ Both are number inputs with `step="0.1"`.
 
 ## 2. Quick-add tiles
 
-Three rows, one per tile, with three inline inputs each: **label · ml · ABV%**. Editing any field updates the tile's behavior immediately (next quick-add uses new values) and persists.
+A list of **1 to `MAX_TILES` (10)** tiles. Each tile is a card with a label input on the top row plus ml / ABV% inputs below. Editing any field updates the tile immediately (next quick-add uses new values) and persists.
 
-The number of tiles is fixed at 3 — there is no add/remove tile UI. Tile IDs (`pot`, `bottle`, `pint`) are stable; renaming the label does not change the ID. **The order in which tiles render on the Today screen follows the order of `settings.tiles`** (default: Pot, Bottle, Pint). To re-order, the array must be re-arranged — there's currently no drag-to-reorder UI.
+Per-tile row controls:
+- `★` / index badge — the first `HOME_TILES` (3) tiles show a gold `★` (they render as Home buttons); positions 4+ show their index number (they appear in the Home “More ▾” dropdown).
+- `▲` / `▼` — reorder the tile up/down (disabled at the ends). **Reordering is how you choose which 3 appear on Home** — move a tile into the top 3.
+- `✕` — remove the tile (disabled when only 1 tile remains).
 
-A one-time migration in `units.js` `loadSettings()` rewrites the old default order `[pot, pint, bottle]` to the new `[pot, bottle, pint]` so existing users don't need to touch Settings. Customized stores are left alone.
+Below the list, an **+ Add tile (N/10)** button appends a new tile (`units.js` `makeTile()` → `{ id: uuid, label: 'Drink', ml: 330, abv: 5 }`); disabled at `MAX_TILES`.
 
-For one-off ABV overrides without changing the tile default, long-press the tile on the Today screen (see `spec-logging.md`).
+Tile IDs are stable (defaults `pot`/`bottle`/`pint`; new tiles get a UUID); renaming the label does not change the ID. **Home reads `settings.tiles.slice(0, HOME_TILES)` for its buttons and `slice(HOME_TILES)` for the dropdown** — see `spec-logging.md`.
+
+A one-time migration in `units.js` `loadSettings()` rewrites the old default order `[pot, pint, bottle]` to `[pot, bottle, pint]`; it is a no-op once the tile count is not exactly 3 (i.e. after the user adds/removes any tile).
+
+For one-off ABV overrides without changing the tile default, long-press a Home tile (see `spec-logging.md`).
 
 ## 3. Sync
 

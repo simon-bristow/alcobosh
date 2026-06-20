@@ -69,6 +69,15 @@ export const DEFAULT_TILES = [
   { id: 'pint', label: 'Pint', ml: 568, abv: 5.0 },
 ]
 
+// Up to this many quick-add tiles can be configured. The first 3 (HOME_TILES)
+// render as buttons on Home; the rest appear in the Home "More" dropdown.
+export const MAX_TILES = 10
+export const HOME_TILES = 3
+
+export function makeTile() {
+  return { id: crypto.randomUUID(), label: 'Drink', ml: 330, abv: 5 }
+}
+
 export const DEFAULT_SETTINGS = {
   weeklyCap: 10,
   dailyWarn: 2,
