@@ -91,20 +91,34 @@ Implemented in `units.js` `calcUnits(ml, abv)`. Recomputed on every save (never 
 
 Display formatting via `fmtUnits(n)` — always 1 decimal place (`2.8`, `0.0`, `10.5`).
 
-## Recent drinks list (Home screen)
+## Drink-row component (`DrinkRow`)
 
-Section header: **"Recent drinks"**. Global, not viewDate-scoped.
+Both Home lists below render through a shared `DrinkRow` component. It takes `{ d, showDay, onEdit, onDelete }`:
 
-Source: `drinks.slice(0, 5)` (drinks come from the subscription sorted by `at` desc).
-
-Each row shows:
-- Real drink: `name · ml · ABV%` + `<DayLabel> · HH:MM · X.Xu` + Edit + Delete
-- Free-day marker: `Alco free day ✓` (gold, `text-yellow-200`) + `<DayLabel> · HH:MM` + Delete only (no Edit)
+- Real drink: `name · ml · ABV%` + subline + Edit + Delete
+- Free-day marker: `Alco free day ✓` (gold, `text-yellow-200`) + subline + Delete only (no Edit)
+- Subline: `HH:MM · X.Xu` when `showDay` is false; `<DayLabel> · HH:MM · X.Xu` when true (free-day markers omit the `· X.Xu`)
 
 `<DayLabel>` is computed by `dayLabelFor(date)`:
 - Today → `Today`
 - Yesterday → `Yesterday`
 - Otherwise → `Sat 6 Jun` (short weekday + day + short month)
+
+## Active-day list (Home screen)
+
+Section above "Recent drinks". Header reads **"Today's drinks"** when `viewDate` is today, otherwise `"<selectedLabel>'s drinks"` (e.g. `Mon 15 Jun's drinks`).
+
+Source: `viewDay` — all entries (real + free-day markers) dated on the selected `viewDate`, in `at`-desc order. Rendered with `DrinkRow showDay={false}` (the day is implied by the header, so only the time shows).
+
+This is the primary affordance for editing a specific day: tap a cell in the rolling-7 heatmap (or a day in Cal) to set `viewDate`, then edit/delete that day's entries here.
+
+Empty state: `"Nothing logged yet."` when `viewDate` is today, else `"Nothing logged."`.
+
+## Recent drinks list (Home screen)
+
+Section header: **"Recent drinks"**, below the active-day list. Global, not viewDate-scoped.
+
+Source: `drinks.slice(0, 5)` (drinks come from the subscription sorted by `at` desc). Rendered with `DrinkRow showDay` so each row carries its `<DayLabel>` prefix.
 
 Empty state: if no drinks at all, show either `"N alcohol-free days so far."` (if streak > 0) or `"Nothing logged yet."`.
 

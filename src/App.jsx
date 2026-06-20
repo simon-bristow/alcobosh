@@ -136,6 +136,7 @@ export default function App() {
           onPickDay={(d) => setViewDate(startOfDay(d))}
           onJumpToToday={() => setViewDate(startOfDay(new Date()))}
           streak={streak}
+          viewDay={viewDay}
           viewDayReal={viewDayReal}
           viewDayFreeMarker={viewDayFreeMarker}
           recent={recent}
@@ -293,7 +294,7 @@ function useLongPress({ onLong, ms = 500 }) {
 
 function Home({
   settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
-  streak, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
+  streak, viewDay, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
   onShiftBack, onShiftForward, onJumpToCurrent7,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
 }) {
@@ -421,6 +422,21 @@ function Home({
       </div>
 
       <section className="mt-6">
+        <h2 className="text-sm text-white/60 mb-2">
+          {isViewingToday ? 'Today’s drinks' : `${selectedLabel}’s drinks`}
+        </h2>
+        {viewDay.length === 0 ? (
+          <p className="text-sm text-white/40">Nothing logged{isViewingToday ? ' yet' : ''}.</p>
+        ) : (
+          <ul className="space-y-2">
+            {viewDay.map((d) => (
+              <DrinkRow key={d.id} d={d} showDay={false} onEdit={onEdit} onDelete={onDelete} />
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="mt-6">
         <h2 className="text-sm text-white/60 mb-2">Recent drinks</h2>
         {recent.length === 0 ? (
           <p className="text-sm text-white/40">
@@ -430,28 +446,9 @@ function Home({
           </p>
         ) : (
           <ul className="space-y-2">
-            {recent.map((d) => {
-              const free = isFreeDay(d)
-              return (
-                <li key={d.id} className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 gap-2">
-                  <div className="min-w-0">
-                    <div className={`text-sm truncate ${free ? 'text-yellow-200' : ''}`}>
-                      {free ? 'Alco free day ✓' : `${d.name || 'Drink'} · ${d.ml}ml · ${d.abv}%`}
-                    </div>
-                    <div className="text-xs text-white/50">
-                      {dayLabelFor(d.at)} · {d.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      {!free && ` · ${fmtUnits(d.units)}u`}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    {!free && (
-                      <button onClick={() => onEdit(d)} className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10">Edit</button>
-                    )}
-                    <button onClick={() => onDelete(d.id)} className="text-xs px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200">Delete</button>
-                  </div>
-                </li>
-              )
-            })}
+            {recent.map((d) => (
+              <DrinkRow key={d.id} d={d} showDay onEdit={onEdit} onDelete={onDelete} />
+            ))}
           </ul>
         )}
       </section>
@@ -463,6 +460,30 @@ function Home({
         </section>
       )}
     </>
+  )
+}
+
+function DrinkRow({ d, showDay, onEdit, onDelete }) {
+  const free = isFreeDay(d)
+  const time = d.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  return (
+    <li className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 gap-2">
+      <div className="min-w-0">
+        <div className={`text-sm truncate ${free ? 'text-yellow-200' : ''}`}>
+          {free ? 'Alco free day ✓' : `${d.name || 'Drink'} · ${d.ml}ml · ${d.abv}%`}
+        </div>
+        <div className="text-xs text-white/50">
+          {showDay ? `${dayLabelFor(d.at)} · ${time}` : time}
+          {!free && ` · ${fmtUnits(d.units)}u`}
+        </div>
+      </div>
+      <div className="flex gap-1 shrink-0">
+        {!free && (
+          <button onClick={() => onEdit(d)} className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10">Edit</button>
+        )}
+        <button onClick={() => onDelete(d.id)} className="text-xs px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200">Delete</button>
+      </div>
+    </li>
   )
 }
 
