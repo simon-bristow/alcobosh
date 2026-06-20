@@ -230,7 +230,7 @@ function Header({ screen, setScreen }) {
       <nav className="flex gap-1 text-sm">
         <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Home</TabBtn>
         <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')}>Cal</TabBtn>
-        <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}>⚙︎</TabBtn>
+        <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}><span className="text-[1.3em] leading-none">⚙︎</span></TabBtn>
       </nav>
     </header>
   )
