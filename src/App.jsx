@@ -373,7 +373,7 @@ function Home({
                     <span className="text-yellow-200">✓</span>
                   ) : null}
                 </button>
-                <div className="text-[10px] text-white/40 mt-1">{dow}</div>
+                <div className="text-[10px] text-white/40 mt-1">{dow} {cell.date.getDate()}</div>
               </div>
             )
           })}

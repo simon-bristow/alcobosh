@@ -49,7 +49,7 @@ Content:
 - `free && u === 0` → `text-yellow-200` `✓`
 - else → blank
 
-Day-of-week letter (`M/T/W/T/F/S/S`) is computed per cell from the date — it rotates as the window shifts.
+The label below each cell shows the weekday letter plus the day of month, e.g. `M 15` (`{dow} {date.getDate()}`). The weekday letter is computed per cell from the date, so labels rotate as the window shifts.
 
 Tapping a cell sets `viewDate`. The 7-day window does NOT slide on cell tap — only the explicit ← arrow / jump-to-current label move it.
 
