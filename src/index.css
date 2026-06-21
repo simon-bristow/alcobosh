@@ -11,6 +11,16 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Hide number-input spinners so compact numeric fields use the full width */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
 /* iOS standalone PWA safe-area inset — clears the notch / status bar */
 body {
   padding-top: env(safe-area-inset-top);

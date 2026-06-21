@@ -866,31 +866,38 @@ function Settings({ settings, onChange, session }) {
         <p className="text-xs text-white/40">
           The top {HOME_TILES} (★) show as buttons on Home. The rest appear in the Home “More ▾” dropdown. Reorder to choose which show.
         </p>
-        <div className="space-y-2">
+        <div className="space-y-1.5">
+          <div className="grid grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto] gap-1 items-center text-[10px] text-white/40 px-0.5">
+            <span />
+            <span>Drink</span>
+            <span className="text-center">ml</span>
+            <span className="text-center">%</span>
+            <span />
+          </div>
           {settings.tiles.map((t, i) => {
             const onHome = i < HOME_TILES
             return (
-              <div key={t.id} className="rounded-lg bg-white/5 p-2 space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className={`text-xs w-4 shrink-0 text-center ${onHome ? 'text-yellow-300' : 'text-white/30'}`}>{onHome ? '★' : i + 1}</span>
-                  <input
-                    className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm"
-                    value={t.label}
-                    onChange={(e) => updateTile(t.id, { label: e.target.value })}
-                  />
-                  <button onClick={() => moveTile(t.id, -1)} disabled={i === 0} aria-label="Move up" className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▲</button>
-                  <button onClick={() => moveTile(t.id, 1)} disabled={i === settings.tiles.length - 1} aria-label="Move down" className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▼</button>
-                  <button onClick={() => removeTile(t.id)} disabled={settings.tiles.length <= 1} aria-label="Remove tile" className="text-xs px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200 disabled:opacity-30">✕</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <label className="flex items-center gap-2 text-xs text-white/50">
-                    ml
-                    <input className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm" type="number" value={t.ml} onChange={(e) => updateTile(t.id, { ml: Number(e.target.value) })} />
-                  </label>
-                  <label className="flex items-center gap-2 text-xs text-white/50">
-                    %
-                    <input className="flex-1 min-w-0 bg-white/5 rounded px-2 py-1 text-sm" type="number" step="0.1" value={t.abv} onChange={(e) => updateTile(t.id, { abv: Number(e.target.value) })} />
-                  </label>
+              <div key={t.id} className="grid grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto] gap-1 items-center">
+                <span className={`text-xs text-center ${onHome ? 'text-yellow-300' : 'text-white/30'}`}>{onHome ? '★' : i + 1}</span>
+                <input
+                  className="min-w-0 bg-white/5 rounded px-2 py-1.5 text-sm"
+                  value={t.label}
+                  onChange={(e) => updateTile(t.id, { label: e.target.value })}
+                />
+                <input
+                  className="min-w-0 bg-white/5 rounded px-1 py-1.5 text-sm text-center"
+                  type="number" inputMode="numeric" value={t.ml}
+                  onChange={(e) => updateTile(t.id, { ml: Number(e.target.value) })}
+                />
+                <input
+                  className="min-w-0 bg-white/5 rounded px-1 py-1.5 text-sm text-center"
+                  type="number" inputMode="decimal" step="0.1" value={t.abv}
+                  onChange={(e) => updateTile(t.id, { abv: Number(e.target.value) })}
+                />
+                <div className="flex gap-0.5">
+                  <button onClick={() => moveTile(t.id, -1)} disabled={i === 0} aria-label="Move up" className="text-[11px] px-1.5 py-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▲</button>
+                  <button onClick={() => moveTile(t.id, 1)} disabled={i === settings.tiles.length - 1} aria-label="Move down" className="text-[11px] px-1.5 py-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▼</button>
+                  <button onClick={() => removeTile(t.id)} disabled={settings.tiles.length <= 1} aria-label="Remove tile" className="text-[11px] px-1.5 py-1.5 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200 disabled:opacity-30">✕</button>
                 </div>
               </div>
             )

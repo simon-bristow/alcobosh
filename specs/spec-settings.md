@@ -13,10 +13,13 @@ Both are number inputs with `step="0.1"`.
 
 ## 2. Quick-add tiles
 
-A list of **1 to `MAX_TILES` (10)** tiles. Each tile is a card with a label input on the top row plus ml / ABV% inputs below. Editing any field updates the tile immediately (next quick-add uses new values) and persists.
+A list of **1 to `MAX_TILES` (10)** tiles. Each tile is a **single compact row** in a shared 5-column grid (`grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto]`), under a small column header (` · Drink · ml · % · `): badge, label input, ml input, ABV% input, and the control cluster. Editing any field updates the tile immediately (next quick-add uses new values) and persists.
 
-Per-tile row controls:
+The ml/ABV inputs are `type="number"` (`inputMode` numeric/decimal) and centered; their browser spinners are hidden via CSS in `index.css` so the narrow fields use their full width.
+
+Per-row elements (left → right):
 - `★` / index badge — the first `HOME_TILES` (3) tiles show a gold `★` (they render as Home buttons); positions 4+ show their index number (they appear in the Home “More ▾” dropdown).
+- label / ml / ABV% inputs.
 - `▲` / `▼` — reorder the tile up/down (disabled at the ends). **Reordering is how you choose which 3 appear on Home** — move a tile into the top 3.
 - `✕` — remove the tile (disabled when only 1 tile remains).
 
