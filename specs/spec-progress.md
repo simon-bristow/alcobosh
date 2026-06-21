@@ -28,30 +28,31 @@ The progress bar (`<Bar>`) uses the standard `ok/warn/over` colour thresholds ba
 
 ### Row 3 — heatmap
 
-7 cells, chronological order: `windowEnd − 6` on the left through `windowEnd` on the right.
+Visually matched to the Cal month grid (`spec-calendar.md`) for consistency: a weekday-letter header row above a row of `aspect-square` cells, with the date number inside each cell and units/✓ below.
 
-Cell rules:
+**Weekday header** — 7 letters in a `grid-cols-7`, computed per cell from each day's actual weekday (`['S','M','T','W','T','F','S'][date.getDay()]`), so they rotate as the window shifts.
 
-| Condition | Background |
-|---|---|
-| `u >= dailyWarn` | `bg-red-500/70` |
-| `0 < u < dailyWarn` | `bg-emerald-500` (opacity `0.3 → 1.0` by intensity) |
-| `u == 0 && free` | `bg-yellow-700/30` (burnt gold for alco-free days) |
-| empty | `bg-white/5` |
+**Cells** — 7 cells, chronological order: `windowEnd − 6` on the left through `windowEnd` on the right. Same colour ramp and content as the Cal cells:
+
+| Condition | Background | Number colour |
+|---|---|---|
+| `u >= dailyWarn` | `bg-red-500/40` | `text-white` |
+| `0 < u < dailyWarn` | `bg-emerald-500/30` | `text-white` |
+| `u == 0 && free` | `bg-yellow-700/30` (burnt gold) | `text-yellow-200` |
+| empty | `bg-white/5` | `text-white/80` |
+
+Cell content (stacked, centered):
+- Date number (`date.getDate()`, `text-xs`) on top — always shown
+- Below: `fmtUnits(u)` (`text-[10px]`, colour-matched to the background) when `u > 0`; or a `text-yellow-200` `✓` when `free`; else blank
 
 Rings:
 - `ring-2 ring-white/40` for the cell whose date equals `viewDate`
 - `ring-1 ring-white/20` for today (when in window and not selected)
 - `hover:ring-2 hover:ring-white/30` on all cells
 
-Content:
-- `u > 0` → white `fmtUnits(u)` text
-- `free && u === 0` → `text-yellow-200` `✓`
-- else → blank
+The only deviations from the Cal grid: there are never future cells (the window ends at `windowEnd ≤ today`), and Home keeps the selected-`viewDate` ring (Cal rings today only). The previous brighter-fill / intensity-opacity styling and the per-cell `M 15` label were dropped in favour of this shared look.
 
-The label below each cell shows the weekday letter plus the day of month, e.g. `M 15` (`{dow} {date.getDate()}`). The weekday letter is computed per cell from the date, so labels rotate as the window shifts.
-
-Tapping a cell sets `viewDate`. The 7-day window does NOT slide on cell tap — only the explicit ← arrow / jump-to-current label move it.
+Tapping a cell sets `viewDate`. The 7-day window does NOT slide on cell tap — only the explicit ← / → arrows / jump-to-current label move it.
 
 ## "Logging on …" banner
 

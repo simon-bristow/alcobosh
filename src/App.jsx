@@ -352,36 +352,42 @@ function Home({
           <span className="text-sm text-white/60">{fmtUnits(sevenTotal)} / {settings.weeklyCap} units</span>
         </div>
         <Bar pct={pct} state={weekState} />
-        <div className="grid grid-cols-7 gap-1 mt-4">
+        <div className="grid grid-cols-7 gap-1 mt-4 mb-1">
+          {rolling7.days.map((cell, i) => (
+            <div key={i} className="text-[10px] text-white/40 text-center">
+              {['S','M','T','W','T','F','S'][cell.date.getDay()]}
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-1">
           {rolling7.days.map((cell, i) => {
             const u = cell.units
             const free = cell.free
             const isViewedDay = sameDay(cell.date, viewDate)
             const isToday = isoDate(cell.date) === todayKey
-            const intensity = Math.min(1, u / settings.dailyWarn)
-            const bg = u === 0
-              ? free ? 'bg-yellow-700/30' : 'bg-white/5'
-              : u >= settings.dailyWarn
-                ? 'bg-red-500/70'
-                : 'bg-emerald-500'
-            const dow = ['S','M','T','W','T','F','S'][cell.date.getDay()]
+
+            let bg = 'bg-white/5'
+            let textColor = 'text-white/80'
+            let unitColor = 'text-white/60'
+            if (u >= settings.dailyWarn) { bg = 'bg-red-500/40'; textColor = 'text-white'; unitColor = 'text-red-100' }
+            else if (u > 0) { bg = 'bg-emerald-500/30'; textColor = 'text-white'; unitColor = 'text-emerald-200' }
+            else if (free) { bg = 'bg-yellow-700/30'; textColor = 'text-yellow-200'; unitColor = 'text-yellow-200/80' }
+
             return (
-              <div key={i} className="text-center">
-                <button
-                  type="button"
-                  onClick={() => onPickDay?.(cell.date)}
-                  className={`w-full h-12 rounded ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : isToday ? 'ring-1 ring-white/20' : ''} hover:ring-2 hover:ring-white/30 flex items-center justify-center text-[11px] leading-none touch-manipulation`}
-                  style={u > 0 && u < settings.dailyWarn ? { opacity: 0.3 + intensity * 0.7 } : undefined}
-                  title={`${cell.date.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Alco free day' : 'no entry'}`}
-                >
-                  {u > 0 ? (
-                    <span className="font-medium text-white">{fmtUnits(u)}</span>
-                  ) : free ? (
-                    <span className="text-yellow-200">✓</span>
-                  ) : null}
-                </button>
-                <div className="text-[10px] text-white/40 mt-1">{dow} {cell.date.getDate()}</div>
-              </div>
+              <button
+                key={i}
+                type="button"
+                onClick={() => onPickDay?.(cell.date)}
+                className={`aspect-square rounded flex flex-col items-center justify-center ${bg} ${isViewedDay ? 'ring-2 ring-white/40' : isToday ? 'ring-1 ring-white/20' : ''} hover:ring-2 hover:ring-white/30 touch-manipulation`}
+                title={`${cell.date.toDateString()}: ${u > 0 ? fmtUnits(u) + 'u' : free ? 'Alco free day' : 'no entry'}`}
+              >
+                <div className={`text-xs ${textColor}`}>{cell.date.getDate()}</div>
+                {u > 0 ? (
+                  <div className={`text-[10px] ${unitColor}`}>{fmtUnits(u)}</div>
+                ) : free ? (
+                  <div className="text-[10px] text-yellow-200">✓</div>
+                ) : null}
+              </button>
             )
           })}
         </div>
