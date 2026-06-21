@@ -493,17 +493,17 @@ function Home({
 
 function DrinkRow({ d, showDay, onEdit, onDelete }) {
   const free = isFreeDay(d)
-  const time = d.at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const parts = []
+  if (showDay) parts.push(dayLabelFor(d.at))
+  if (!free) parts.push(`${fmtUnits(d.units)}u`)
+  const subline = parts.join(' · ')
   return (
     <li className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2 gap-2">
       <div className="min-w-0">
         <div className={`text-sm truncate ${free ? 'text-yellow-200' : ''}`}>
           {free ? 'Alco free day ✓' : `${d.name || 'Drink'} · ${d.ml}ml · ${d.abv}%`}
         </div>
-        <div className="text-xs text-white/50">
-          {showDay ? `${dayLabelFor(d.at)} · ${time}` : time}
-          {!free && ` · ${fmtUnits(d.units)}u`}
-        </div>
+        {subline && <div className="text-xs text-white/50">{subline}</div>}
       </div>
       <div className="flex gap-1 shrink-0">
         {!free && (

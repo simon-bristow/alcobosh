@@ -106,7 +106,7 @@ Both Home lists below render through a shared `DrinkRow` component. It takes `{ 
 
 - Real drink: `name · ml · ABV%` + subline + Edit + Delete
 - Free-day marker: `Alco free day ✓` (gold, `text-yellow-200`) + subline + Delete only (no Edit)
-- Subline: `HH:MM · X.Xu` when `showDay` is false; `<DayLabel> · HH:MM · X.Xu` when true (free-day markers omit the `· X.Xu`)
+- Subline: a `· `-joined list of `[<DayLabel> (when showDay)] + [X.Xu (real drinks only)]`. No time of day is shown. So: `X.Xu` (active-day real), empty (active-day free → subline div omitted), `<DayLabel> · X.Xu` (recent real), `<DayLabel>` (recent free).
 
 `<DayLabel>` is computed by `dayLabelFor(date)`:
 - Today → `Today`
@@ -117,7 +117,7 @@ Both Home lists below render through a shared `DrinkRow` component. It takes `{ 
 
 Section above "Recent drinks". Header reads **"Today's drinks"** when `viewDate` is today, otherwise `"<selectedLabel>'s drinks"` (e.g. `Mon 15 Jun's drinks`).
 
-Source: `viewDay` — all entries (real + free-day markers) dated on the selected `viewDate`, in `at`-desc order. Rendered with `DrinkRow showDay={false}` (the day is implied by the header, so only the time shows).
+Source: `viewDay` — all entries (real + free-day markers) dated on the selected `viewDate`, in `at`-desc order. Rendered with `DrinkRow showDay={false}` (the day is implied by the header, so the subline shows only the units — or nothing for a free-day marker).
 
 This is the primary affordance for editing a specific day: tap a cell in the rolling-7 heatmap (or a day in Cal) to set `viewDate`, then edit/delete that day's entries here.
 
