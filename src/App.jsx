@@ -866,18 +866,16 @@ function Settings({ settings, onChange, session }) {
         <p className="text-xs text-white/40">
           The top {HOME_TILES} (★) show as buttons on Home. The rest appear in the Home “More ▾” dropdown. Reorder to choose which show.
         </p>
-        <div className="space-y-1.5">
-          <div className="grid grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto] gap-1 items-center text-[10px] text-white/40 px-0.5">
-            <span />
-            <span>Drink</span>
-            <span className="text-center">ml</span>
-            <span className="text-center">%</span>
-            <span />
-          </div>
+        <div className="grid grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto] gap-x-1 gap-y-1.5 items-center">
+          <span />
+          <span className="text-[10px] text-white/40 px-2">Drink</span>
+          <span className="text-[10px] text-white/40 text-center">ml</span>
+          <span className="text-[10px] text-white/40 text-center">%</span>
+          <span />
           {settings.tiles.map((t, i) => {
             const onHome = i < HOME_TILES
             return (
-              <div key={t.id} className="grid grid-cols-[1rem_minmax(0,1fr)_3rem_2.5rem_auto] gap-1 items-center">
+              <Fragment key={t.id}>
                 <span className={`text-xs text-center ${onHome ? 'text-yellow-300' : 'text-white/30'}`}>{onHome ? '★' : i + 1}</span>
                 <input
                   className="min-w-0 bg-white/5 rounded px-2 py-1.5 text-sm"
@@ -899,7 +897,7 @@ function Settings({ settings, onChange, session }) {
                   <button onClick={() => moveTile(t.id, 1)} disabled={i === settings.tiles.length - 1} aria-label="Move down" className="text-[11px] px-1.5 py-1.5 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30">▼</button>
                   <button onClick={() => removeTile(t.id)} disabled={settings.tiles.length <= 1} aria-label="Remove tile" className="text-[11px] px-1.5 py-1.5 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200 disabled:opacity-30">✕</button>
                 </div>
-              </div>
+              </Fragment>
             )
           })}
         </div>
