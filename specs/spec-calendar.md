@@ -59,24 +59,22 @@ For each real calendar day, compute:
 
 ## Stats table (`StatsTable`)
 
-Below the grid, a two-column comparison table — **7 days** vs **30 days** — both rolling windows anchored at today (not the displayed month). Rendered by the `StatsTable` component from two `windowStats()` results (`stats7`, `stats30`), computed in `Calendar` via `useMemo`.
+`StatsTable` is a **shared component** (also used by the Trends screen — `spec-history.md`). It takes `{ columns, settings, caption }` where `columns` is `[{ key, header, stats }]` — one right-aligned, `tabular-nums` value column per stats object. The grid template is `1fr` plus `minmax(3.5rem,auto)` per column. Header row reads `Stats | <header>…`.
 
-Layout is a `grid-cols-[1fr_4.5rem_4.5rem]`: a label column plus two right-aligned, `tabular-nums` value columns. Header row reads `Stats | 7 days | 30 days`.
-
-Rows:
+Rows (each reads from a column's `stats`):
 
 | Row | Value | Notes |
 |---|---|---|
-| Total | `X.Xu` | sum of real units in the window |
-| Daily average | `X.Xu` | `total / days` (averaged across **all** calendar days in the window, not just drinking days) |
-| Highest day | `X.Xu` or `—` | peak single-day total among drinking days; `—` when no drinking days. Coloured red when `>= settings.dailyWarn`. |
+| Total | `X.Xu` | sum of real units |
+| Daily average | `X.Xu` | `total / days` (averaged across **all** calendar days, not just drinking days) |
+| Highest day | `X.Xu` or `—` | peak single-day total among drinking days; `—` when none. Coloured red when `>= settings.dailyWarn`. |
 | Lowest day | `X.Xu` or `—` | lowest single-day total among drinking days (excludes zero days); `—` when none |
-| Drinking days | `N / 7` or `N / 30` | days with `u > 0` |
-| Alco-free days | `N / 7` or `N / 30` | days with zero real units (`days − drinkingDays`); coloured burnt gold (`text-yellow-200`) |
+| Drinking days | `N / <days>` | days with `u > 0` (denominator = `stats.days`) |
+| Alco-free days | `N / <days>` | days with zero real units (`days − drinkingDays`); coloured burnt gold (`text-yellow-200`) |
 
-Caption below: *"Rolling windows ending today."*
+Cal passes two columns — **7 days** vs **30 days** — both rolling windows anchored at today (not the displayed month), from `windowStats(drinks, 7)` / `windowStats(drinks, 30)`, with caption *"Rolling windows ending today."* Trends passes a single range column (`rangeStats`).
 
-The previous month-scoped summary (Month total / Drinking days (month) / Alco free days (month)) was replaced by this rolling table.
+The previous month-scoped summary (Month total / Drinking days (month) / Alco free days (month)) was replaced by this table.
 
 ## Source helpers
 

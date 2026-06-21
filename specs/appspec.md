@@ -17,7 +17,8 @@ Single-page app with a top-nav switching between three views:
 
 1. **Home** (`home`) — rolling 7-day block (total + clickable heatmap, today on the right edge), Last 30 days card, quick-add tiles (long-press for custom ABV), Custom + Free Day buttons (with celebration), an amber "Logging on …" banner when a non-today cell is selected, recent-drinks list, AF-day streak. The Home tab is labelled "Home" in the nav even though the internal screen value is `home`.
 2. **Cal** (`calendar`) — month grid showing units per day; tap a day to jump back to Home with that date selected
-3. **Settings** (`settings`, ⚙︎ icon) — limits, tile editor, device-pairing UI
+3. **Trends** (`history`) — bar chart of consumption over a chosen range (presets + custom), with a range stats table below
+4. **Settings** (`settings`, ⚙︎ icon) — limits, tile editor, device-pairing UI
 
 ## Core constants
 
@@ -29,6 +30,8 @@ Single-page app with a top-nav switching between three views:
 | Unit formula | `(ml × ABV%) / 1000` | `units.js` `calcUnits()` |
 | Default tiles | Pot 285/5, Bottle 330/5, Pint 568/5 | `units.js` `DEFAULT_TILES` |
 | Tile limits | 1–10 configured; first 3 on Home, rest in dropdown | `units.js` `MAX_TILES` (10), `HOME_TILES` (3) |
+| Trends presets | 30d / 3m / 6m / 12m / All time / Custom (default 6m) | `App.jsx` `HISTORY_PRESETS` |
+| Chart granularity | ≤35d day, ≤100d week, else month | `units.js` `pickGranularity()` |
 | Long-press threshold | 500ms (≤10px movement) | `App.jsx` `useLongPress()` |
 | Free-day shape | `{ freeDay: true, units: 0, ml: 0, abv: 0, name: 'Free day' }` | `App.jsx` `logFreeDay()` |
 | Recent-drinks list size | 5 most recent | `App.jsx` `recent = drinks.slice(0, 5)` |

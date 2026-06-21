@@ -11,7 +11,8 @@ Whenever any file under `src/`, `index.html`, `vite.config.js`, `.github/workflo
 | App overview, stack, flow, constraints, viewDate, file map | `specs/appspec.md` |
 | Quick-add tiles, long-press ABV, free day + celebration, custom drink, recent list, edit/delete (incl. date) | `specs/spec-logging.md` |
 | Rolling 7-day block (heatmap + total), Last 30 days card, "Logging on …" banner, AF streak | `specs/spec-progress.md` |
-| Calendar view, month grid, monthly stats, day-cell tap-to-jump | `specs/spec-calendar.md` |
+| Calendar view, month grid, shared StatsTable component | `specs/spec-calendar.md` |
+| Trends/History screen, range selector, BarChart, range stats | `specs/spec-history.md` |
 | Settings UI, tile editor, limits, persistence | `specs/spec-settings.md` |
 | Firebase, auth, Firestore model, device pairing, local fallback | `specs/spec-sync.md` |
 | Vite base, GH Pages, Actions workflow, PWA manifest | `specs/spec-deployment.md` |

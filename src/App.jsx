@@ -13,6 +13,10 @@ import {
   unitsByDay,
   freeDaysByDay,
   windowStats,
+  rangeStats,
+  bucketUnits,
+  pickGranularity,
+  firstDrinkDate,
   makeTile,
   MAX_TILES,
   HOME_TILES,
@@ -165,6 +169,8 @@ export default function App() {
         />
       )}
 
+      {screen === 'history' && <History drinks={drinks} settings={settings} />}
+
       {screen === 'settings' && (
         <Settings
           settings={settings}
@@ -230,6 +236,7 @@ function Header({ screen, setScreen }) {
       <nav className="flex gap-1 text-sm">
         <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Home</TabBtn>
         <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')}>Cal</TabBtn>
+        <TabBtn active={screen === 'history'} onClick={() => setScreen('history')}>Trends</TabBtn>
         <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}><span className="text-[1.3em] leading-none">⚙︎</span></TabBtn>
       </nav>
     </header>
@@ -540,35 +547,171 @@ function Bar({ pct, state }) {
   )
 }
 
-function StatsTable({ stats7, stats30, settings }) {
+// columns: [{ key, header, stats }] — one value column per stats object.
+function StatsTable({ columns, settings, caption }) {
   const u = (n) => `${fmtUnits(n)}u`
   const dayVal = (s, n) => (s.drinkingDays > 0 ? u(n) : '—')
-  const highClass = (s) => (s.high >= settings.dailyWarn ? 'text-red-300' : 'text-white/80')
-
   const rows = [
-    { label: 'Total', a: u(stats7.total), b: u(stats30.total) },
-    { label: 'Daily average', a: u(stats7.avg), b: u(stats30.avg) },
-    { label: 'Highest day', a: dayVal(stats7, stats7.high), b: dayVal(stats30, stats30.high), aCls: highClass(stats7), bCls: highClass(stats30) },
-    { label: 'Lowest day', a: dayVal(stats7, stats7.low), b: dayVal(stats30, stats30.low) },
-    { label: 'Drinking days', a: `${stats7.drinkingDays} / 7`, b: `${stats30.drinkingDays} / 30` },
-    { label: 'Alco-free days', a: `${stats7.afDays} / 7`, b: `${stats30.afDays} / 30`, aCls: 'text-yellow-200', bCls: 'text-yellow-200' },
+    { label: 'Total', val: (s) => u(s.total) },
+    { label: 'Daily average', val: (s) => u(s.avg) },
+    { label: 'Highest day', val: (s) => dayVal(s, s.high), cls: (s) => (s.high >= settings.dailyWarn ? 'text-red-300' : 'text-white/80') },
+    { label: 'Lowest day', val: (s) => dayVal(s, s.low) },
+    { label: 'Drinking days', val: (s) => `${s.drinkingDays} / ${s.days}` },
+    { label: 'Alco-free days', val: (s) => `${s.afDays} / ${s.days}`, cls: () => 'text-yellow-200' },
   ]
+  const gridCols = `1fr ${columns.map(() => 'minmax(3.5rem,auto)').join(' ')}`
 
   return (
     <div className="mt-4 rounded-2xl bg-white/5 p-4">
-      <div className="grid grid-cols-[1fr_4.5rem_4.5rem] gap-y-2 text-xs items-center">
+      <div className="grid gap-y-2 gap-x-3 text-xs items-center" style={{ gridTemplateColumns: gridCols }}>
         <div className="text-white/40 font-medium">Stats</div>
-        <div className="text-right text-white/50 font-medium">7 days</div>
-        <div className="text-right text-white/50 font-medium">30 days</div>
+        {columns.map((c) => (
+          <div key={c.key} className="text-right text-white/50 font-medium">{c.header}</div>
+        ))}
         {rows.map((r) => (
           <Fragment key={r.label}>
             <div className="text-white/60">{r.label}</div>
-            <div className={`text-right tabular-nums ${r.aCls || 'text-white/80'}`}>{r.a}</div>
-            <div className={`text-right tabular-nums ${r.bCls || 'text-white/80'}`}>{r.b}</div>
+            {columns.map((c) => (
+              <div key={c.key} className={`text-right tabular-nums ${r.cls ? r.cls(c.stats) : 'text-white/80'}`}>{r.val(c.stats)}</div>
+            ))}
           </Fragment>
         ))}
       </div>
-      <p className="text-[10px] text-white/30 mt-3">Rolling windows ending today.</p>
+      {caption && <p className="text-[10px] text-white/30 mt-3">{caption}</p>}
+    </div>
+  )
+}
+
+const HISTORY_PRESETS = [
+  { key: '30d', label: '30 days' },
+  { key: '3m', label: '3 months' },
+  { key: '6m', label: '6 months' },
+  { key: '12m', label: '12 months' },
+  { key: 'all', label: 'All time' },
+  { key: 'custom', label: 'Custom' },
+]
+
+function History({ drinks, settings }) {
+  const today = startOfDay(new Date())
+  const [preset, setPreset] = useState('6m')
+  const [customStart, setCustomStart] = useState(() => {
+    const d = new Date(today); d.setDate(d.getDate() - 29); return toLocalDateString(d)
+  })
+  const [customEnd, setCustomEnd] = useState(() => toLocalDateString(today))
+
+  const range = useMemo(() => {
+    if (preset === 'custom') {
+      const a = parseLocalDate(customStart)
+      const b = parseLocalDate(customEnd)
+      return a <= b ? { start: a, end: b } : { start: b, end: a }
+    }
+    const end = today
+    if (preset === 'all') {
+      return { start: firstDrinkDate(drinks) || end, end }
+    }
+    const start = new Date(end)
+    if (preset === '30d') start.setDate(start.getDate() - 29)
+    else if (preset === '3m') start.setMonth(start.getMonth() - 3)
+    else if (preset === '6m') start.setMonth(start.getMonth() - 6)
+    else if (preset === '12m') start.setMonth(start.getMonth() - 12)
+    return { start: startOfDay(start), end }
+  }, [preset, customStart, customEnd, drinks, today])
+
+  const days = Math.max(1, Math.round((range.end - range.start) / 86400000) + 1)
+  const granularity = pickGranularity(days)
+  const buckets = useMemo(() => bucketUnits(drinks, range.start, range.end, granularity), [drinks, range, granularity])
+  const stats = useMemo(() => rangeStats(drinks, range.start, range.end), [drinks, range])
+
+  const fmtD = (d) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+  const presetHeader = preset === 'custom' ? 'Range' : HISTORY_PRESETS.find((p) => p.key === preset)?.label
+
+  return (
+    <div className="mt-2 space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {HISTORY_PRESETS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPreset(p.key)}
+            className={`px-3 py-1.5 rounded-lg text-xs ${
+              preset === p.key ? 'bg-emerald-500/25 text-emerald-100' : 'bg-white/5 text-white/60 hover:bg-white/10'
+            }`}
+          >{p.label}</button>
+        ))}
+      </div>
+
+      {preset === 'custom' && (
+        <div className="flex items-center gap-2 text-sm">
+          <input
+            type="date" value={customStart} max={customEnd}
+            onChange={(e) => setCustomStart(e.target.value)}
+            className="flex-1 min-w-0 bg-white/5 rounded px-2 py-2"
+          />
+          <span className="text-white/40">→</span>
+          <input
+            type="date" value={customEnd} max={toLocalDateString(today)}
+            onChange={(e) => setCustomEnd(e.target.value)}
+            className="flex-1 min-w-0 bg-white/5 rounded px-2 py-2"
+          />
+        </div>
+      )}
+
+      <section className="rounded-2xl bg-white/5 p-4">
+        <div className="flex items-baseline justify-between mb-1">
+          <span className="text-sm text-white/60">{fmtUnits(stats.total)} units</span>
+          <span className="text-[11px] text-white/40">by {granularity}</span>
+        </div>
+        <div className="text-[11px] text-white/40 mb-3">{fmtD(range.start)} – {fmtD(range.end)}</div>
+        <BarChart buckets={buckets} settings={settings} granularity={granularity} />
+      </section>
+
+      <StatsTable
+        columns={[{ key: 'range', header: presetHeader, stats }]}
+        settings={settings}
+        caption="For the selected range."
+      />
+    </div>
+  )
+}
+
+function BarChart({ buckets, settings, granularity }) {
+  const max = Math.max(1, ...buckets.map((b) => b.value))
+  const cap = granularity === 'day' ? settings.dailyWarn : granularity === 'week' ? settings.weeklyCap : null
+  const n = buckets.length
+  const labelEvery = Math.max(1, Math.ceil(n / 6))
+
+  if (n === 0) return <p className="text-sm text-white/40">No data in this range.</p>
+
+  return (
+    <div>
+      <div className="relative flex items-end gap-px h-40 border-b border-white/10">
+        {cap && cap <= max && (
+          <div
+            className="absolute left-0 right-0 border-t border-dashed border-white/25"
+            style={{ top: `${(1 - cap / max) * 100}%` }}
+            title={`Cap ${fmtUnits(cap)}u`}
+          />
+        )}
+        {buckets.map((b, i) => {
+          const h = b.value > 0 ? Math.max(2, (b.value / max) * 100) : 0
+          const over = cap && b.value > cap
+          return (
+            <div key={i} className="flex-1 flex items-end h-full min-w-0" title={`${b.label}: ${fmtUnits(b.value)}u`}>
+              <div className={`w-full rounded-t ${over ? 'bg-red-500/70' : 'bg-emerald-500/70'}`} style={{ height: `${h}%` }} />
+            </div>
+          )
+        })}
+      </div>
+      <div className="flex gap-px mt-1">
+        {buckets.map((b, i) => (
+          <div key={i} className="flex-1 min-w-0 text-[9px] text-white/40 text-center whitespace-nowrap">
+            {i % labelEvery === 0 ? b.label : ''}
+          </div>
+        ))}
+      </div>
+      <div className="flex justify-between text-[10px] text-white/30 mt-2">
+        <span>peak {fmtUnits(max)}u{cap ? ` · cap ${fmtUnits(cap)}u` : ''}</span>
+        <span>{n} {granularity === 'day' ? 'days' : granularity === 'week' ? 'weeks' : 'months'}</span>
+      </div>
     </div>
   )
 }
@@ -655,7 +798,14 @@ function Calendar({ drinks, settings, onPickDay }) {
         })}
       </div>
 
-      <StatsTable stats7={stats7} stats30={stats30} settings={settings} />
+      <StatsTable
+        columns={[
+          { key: '7', header: '7 days', stats: stats7 },
+          { key: '30', header: '30 days', stats: stats30 },
+        ]}
+        settings={settings}
+        caption="Rolling windows ending today."
+      />
 
       <p className="text-[11px] text-white/30 mt-3 text-center">Tap a day to jump to it</p>
     </div>
@@ -793,6 +943,11 @@ function toLocalDateString(d) {
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
   return `${y}-${m}-${day}`
+}
+
+function parseLocalDate(str) {
+  const [y, m, d] = str.split('-').map(Number)
+  return new Date(y, (m || 1) - 1, d || 1)
 }
 
 function DrinkModal({ title, initial, showDate, onCancel, onSave }) {

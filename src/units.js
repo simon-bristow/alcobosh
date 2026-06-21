@@ -135,36 +135,95 @@ export function freeDaysByDay(drinks) {
   return m
 }
 
-// Rolling-window stats over the last `days` calendar days (inclusive of today).
+// Stats over an explicit inclusive [start, end] date range.
 // total/avg/high/low are in units; drinkingDays/afDays are counts.
 // `high`/`low` are the peak and lowest single-day totals among drinking days
 // (days with units > 0); both 0 when there were no drinking days.
-// `afDays` counts every day in the window with zero real units.
-export function windowStats(drinks, days, today = new Date()) {
+// `afDays` counts every day in the range with zero real units.
+export function rangeStats(drinks, start, end) {
   const unitsMap = unitsByDay(drinks)
-  const end = startOfDay(today)
+  const s = startOfDay(start)
+  const e = startOfDay(end)
+  const days = Math.max(0, Math.round((e - s) / 86400000) + 1)
   let total = 0
   let drinkingDays = 0
   let high = 0
   let low = Infinity
+  const cur = new Date(s)
   for (let i = 0; i < days; i++) {
-    const d = new Date(end)
-    d.setDate(d.getDate() - i)
-    const u = unitsMap[isoDate(d)] || 0
+    const u = unitsMap[isoDate(cur)] || 0
     total += u
     if (u > 0) {
       drinkingDays++
       if (u > high) high = u
       if (u < low) low = u
     }
+    cur.setDate(cur.getDate() + 1)
   }
   return {
     days,
     total,
-    avg: total / days,
+    avg: days > 0 ? total / days : 0,
     high: drinkingDays > 0 ? high : 0,
     low: drinkingDays > 0 ? low : 0,
     drinkingDays,
     afDays: days - drinkingDays,
   }
+}
+
+// Rolling-window stats over the last `days` calendar days (inclusive of today).
+export function windowStats(drinks, days, today = new Date()) {
+  const end = startOfDay(today)
+  const start = new Date(end)
+  start.setDate(start.getDate() - (days - 1))
+  return rangeStats(drinks, start, end)
+}
+
+// Earliest dated entry (real or free-day), as a startOfDay; null if none.
+export function firstDrinkDate(drinks) {
+  let min = null
+  drinks.forEach((d) => {
+    if (!d.at) return
+    if (!min || d.at < min) min = d.at
+  })
+  return min ? startOfDay(min) : null
+}
+
+// Picks a chart bucket granularity from the range length in days.
+export function pickGranularity(days) {
+  if (days <= 35) return 'day'
+  if (days <= 100) return 'week'
+  return 'month'
+}
+
+// Buckets real-unit totals across [start, end] at day/week/month granularity.
+// Returns [{ start: Date, key, label, value }] in chronological order.
+export function bucketUnits(drinks, start, end, granularity) {
+  const unitsMap = unitsByDay(drinks)
+  const s = startOfDay(start)
+  const e = startOfDay(end)
+  const bucketStart = (d) => {
+    if (granularity === 'month') return new Date(d.getFullYear(), d.getMonth(), 1)
+    if (granularity === 'week') return weekBounds(d).start
+    return startOfDay(d)
+  }
+  const labelOf = (d) =>
+    granularity === 'month'
+      ? d.toLocaleDateString(undefined, { month: 'short' })
+      : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' })
+
+  const buckets = []
+  let curKey = null
+  const cur = new Date(s)
+  while (cur <= e) {
+    const bs = bucketStart(cur)
+    const key = isoDate(bs)
+    if (key !== curKey) {
+      buckets.push({ start: bs, key, label: labelOf(bs), value: 0 })
+      curKey = key
+    }
+    buckets[buckets.length - 1].value += unitsMap[isoDate(cur)] || 0
+    cur.setDate(cur.getDate() + 1)
+  }
+  return buckets
 }
