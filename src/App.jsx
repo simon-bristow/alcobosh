@@ -609,11 +609,17 @@ const HISTORY_PRESETS = [
 
 function History({ drinks, settings }) {
   const today = startOfDay(new Date())
-  const [preset, setPreset] = useState('6m')
+  const [preset, setPreset] = useState(() => localStorage.getItem('alcbosh:trendsPreset') || '6m')
   const [customStart, setCustomStart] = useState(() => {
+    const saved = localStorage.getItem('alcbosh:trendsCustomStart')
+    if (saved) return saved
     const d = new Date(today); d.setDate(d.getDate() - 29); return toLocalDateString(d)
   })
-  const [customEnd, setCustomEnd] = useState(() => toLocalDateString(today))
+  const [customEnd, setCustomEnd] = useState(() => localStorage.getItem('alcbosh:trendsCustomEnd') || toLocalDateString(today))
+
+  function pickPreset(p) { setPreset(p); localStorage.setItem('alcbosh:trendsPreset', p) }
+  function pickCustomStart(v) { setCustomStart(v); localStorage.setItem('alcbosh:trendsCustomStart', v) }
+  function pickCustomEnd(v) { setCustomEnd(v); localStorage.setItem('alcbosh:trendsCustomEnd', v) }
 
   const range = useMemo(() => {
     if (preset === 'custom') {
@@ -647,7 +653,7 @@ function History({ drinks, settings }) {
         {HISTORY_PRESETS.map((p) => (
           <button
             key={p.key}
-            onClick={() => setPreset(p.key)}
+            onClick={() => pickPreset(p.key)}
             className={`px-3 py-1.5 rounded-lg text-xs ${
               preset === p.key ? 'bg-emerald-500/25 text-emerald-100' : 'bg-white/5 text-white/60 hover:bg-white/10'
             }`}
@@ -659,13 +665,13 @@ function History({ drinks, settings }) {
         <div className="flex items-center gap-2 text-sm">
           <input
             type="date" value={customStart} max={customEnd}
-            onChange={(e) => setCustomStart(e.target.value)}
+            onChange={(e) => pickCustomStart(e.target.value)}
             className="flex-1 min-w-0 bg-white/5 rounded px-2 py-2"
           />
           <span className="text-white/40">→</span>
           <input
             type="date" value={customEnd} max={toLocalDateString(today)}
-            onChange={(e) => setCustomEnd(e.target.value)}
+            onChange={(e) => pickCustomEnd(e.target.value)}
             className="flex-1 min-w-0 bg-white/5 rounded px-2 py-2"
           />
         </div>
