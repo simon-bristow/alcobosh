@@ -522,11 +522,17 @@ function DrinkRow({ d, showDay, onEdit, onDelete, onDuplicate }) {
         {subline && <div className="text-xs text-white/50">{subline}</div>}
       </div>
       <div className="flex gap-1 shrink-0">
-        <button onClick={() => onDuplicate(d)} aria-label="Duplicate" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/70">+</button>
+        <button onClick={() => onDuplicate(d)} aria-label="Duplicate" className="w-8 h-8 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+        </button>
         {!free && (
-          <button onClick={() => onEdit(d)} aria-label="Edit" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/70">✏︎</button>
+          <button onClick={() => onEdit(d)} aria-label="Edit" className="w-8 h-8 flex items-center justify-center rounded-md bg-white/5 hover:bg-white/10 text-white/50 hover:text-white/80">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 20h4L18.5 9.5a2.828 2.828 0 1 0-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+          </button>
         )}
-        <button onClick={() => onDelete(d.id)} aria-label="Delete" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-red-500/15 hover:bg-red-500/25 text-red-300">✕</button>
+        <button onClick={() => onDelete(d.id)} aria-label="Delete" className="w-8 h-8 flex items-center justify-center rounded-md bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12"/><path d="M9 7V4h6v3"/></svg>
+        </button>
       </div>
     </li>
   )
