@@ -158,6 +158,7 @@ export default function App() {
           onFreeDay={logFreeDay}
           onEdit={setEditing}
           onDelete={(id) => remove(session.dataUid, id)}
+          onDuplicate={(d) => add(session.dataUid, { name: d.name, ml: d.ml, abv: d.abv, units: d.units, ...(isFreeDay(d) ? { freeDay: true } : {}) })}
         />
       )}
 
@@ -306,7 +307,7 @@ function Home({
   settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
   streak, viewDay, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
   onShiftBack, onShiftForward, onJumpToCurrent7,
-  onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete,
+  onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete, onDuplicate,
 }) {
   const sevenTotal = rolling7.total
   const pct = Math.min(100, (sevenTotal / settings.weeklyCap) * 100)
@@ -465,7 +466,7 @@ function Home({
         ) : (
           <ul className="space-y-2">
             {viewDay.map((d) => (
-              <DrinkRow key={d.id} d={d} showDay={false} onEdit={onEdit} onDelete={onDelete} />
+              <DrinkRow key={d.id} d={d} showDay={false} onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
             ))}
           </ul>
         )}
@@ -482,7 +483,7 @@ function Home({
         ) : (
           <ul className="space-y-2">
             {recent.map((d) => (
-              <DrinkRow key={d.id} d={d} showDay onEdit={onEdit} onDelete={onDelete} />
+              <DrinkRow key={d.id} d={d} showDay onEdit={onEdit} onDelete={onDelete} onDuplicate={onDuplicate} />
             ))}
           </ul>
         )}
@@ -498,7 +499,7 @@ function Home({
   )
 }
 
-function DrinkRow({ d, showDay, onEdit, onDelete }) {
+function DrinkRow({ d, showDay, onEdit, onDelete, onDuplicate }) {
   const free = isFreeDay(d)
   const parts = []
   if (showDay) parts.push(dayLabelFor(d.at))
@@ -513,10 +514,11 @@ function DrinkRow({ d, showDay, onEdit, onDelete }) {
         {subline && <div className="text-xs text-white/50">{subline}</div>}
       </div>
       <div className="flex gap-1 shrink-0">
+        <button onClick={() => onDuplicate(d)} aria-label="Duplicate" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/70">+</button>
         {!free && (
-          <button onClick={() => onEdit(d)} className="text-xs px-2 py-1 rounded bg-white/5 hover:bg-white/10">Edit</button>
+          <button onClick={() => onEdit(d)} aria-label="Edit" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-white/5 hover:bg-white/10 text-white/70">✏︎</button>
         )}
-        <button onClick={() => onDelete(d.id)} className="text-xs px-2 py-1 rounded bg-red-500/15 hover:bg-red-500/25 text-red-200">Delete</button>
+        <button onClick={() => onDelete(d.id)} aria-label="Delete" className="text-sm w-7 h-7 flex items-center justify-center rounded bg-red-500/15 hover:bg-red-500/25 text-red-300">✕</button>
       </div>
     </li>
   )
