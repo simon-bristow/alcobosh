@@ -235,7 +235,7 @@ function Header({ screen, setScreen }) {
         Alcobosh
       </button>
       <nav className="flex gap-1 text-sm">
-        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}>Home</TabBtn>
+        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}><span className="text-[1.3em] leading-none">🏠</span></TabBtn>
         <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')}><span className="text-[1.3em] leading-none">📅</span></TabBtn>
         <TabBtn active={screen === 'history'} onClick={() => setScreen('history')}><span className="text-[1.3em] leading-none">📊</span></TabBtn>
         <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}><span className="text-[1.3em] leading-none">⚙︎</span></TabBtn>
