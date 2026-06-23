@@ -235,10 +235,18 @@ function Header({ screen, setScreen }) {
         Alcobosh
       </button>
       <nav className="flex gap-1 text-sm">
-        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')}><span className="text-[1.3em] leading-none">🏠</span></TabBtn>
-        <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')}><span className="text-[1.3em] leading-none">📅</span></TabBtn>
-        <TabBtn active={screen === 'history'} onClick={() => setScreen('history')}><span className="text-[1.3em] leading-none">📊</span></TabBtn>
-        <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')}><span className="text-[1.3em] leading-none">⚙︎</span></TabBtn>
+        <TabBtn active={screen === 'home'} onClick={() => setScreen('home')} aria-label="Home">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3L4 9v12h5v-6h6v6h5V9z"/><path d="M9 21v-6h6v6"/></svg>
+        </TabBtn>
+        <TabBtn active={screen === 'calendar'} onClick={() => setScreen('calendar')} aria-label="Calendar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="16" rx="2"/><line x1="16" y1="3" x2="16" y2="7"/><line x1="8" y1="3" x2="8" y2="7"/><line x1="4" y1="11" x2="20" y2="11"/><rect x="8" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="11" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/><rect x="14" y="15" width="2" height="2" rx="0.5" fill="currentColor" stroke="none"/></svg>
+        </TabBtn>
+        <TabBtn active={screen === 'history'} onClick={() => setScreen('history')} aria-label="Trends">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="14 7 21 7 21 14"/></svg>
+        </TabBtn>
+        <TabBtn active={screen === 'settings'} onClick={() => setScreen('settings')} aria-label="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 10a2 2 0 1 0 4 0 2 2 0 0 0-4 0M4 10h-1M8 10h12M10 5a2 2 0 1 0 4 0 2 2 0 0 0-4 0M12 5v-2M12 7v12M10 19a2 2 0 1 0 4 0 2 2 0 0 0-4 0M14 19h7"/></svg>
+        </TabBtn>
       </nav>
     </header>
   )
