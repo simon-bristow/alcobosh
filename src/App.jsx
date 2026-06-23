@@ -599,12 +599,12 @@ function StatsTable({ columns, settings, caption }) {
 }
 
 const HISTORY_PRESETS = [
-  { key: '30d', label: '30 days' },
-  { key: '3m', label: '3 months' },
-  { key: '6m', label: '6 months' },
-  { key: '12m', label: '12 months' },
-  { key: 'all', label: 'All time' },
-  { key: 'custom', label: 'Custom' },
+  { key: '30d', label: '30 days', short: '30d' },
+  { key: '3m', label: '3 months', short: '3m' },
+  { key: '6m', label: '6 months', short: '6m' },
+  { key: '12m', label: '12 months', short: '12m' },
+  { key: 'all', label: 'All time', short: 'All' },
+  { key: 'custom', label: 'Custom', short: 'Custom' },
 ]
 
 function History({ drinks, settings }) {
@@ -649,15 +649,15 @@ function History({ drinks, settings }) {
 
   return (
     <div className="mt-2 space-y-4">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-1">
         {HISTORY_PRESETS.map((p) => (
           <button
             key={p.key}
             onClick={() => pickPreset(p.key)}
-            className={`px-3 py-1.5 rounded-lg text-xs ${
+            className={`flex-1 py-1.5 rounded-lg text-[11px] text-center ${
               preset === p.key ? 'bg-emerald-500/25 text-emerald-100' : 'bg-white/5 text-white/60 hover:bg-white/10'
             }`}
-          >{p.label}</button>
+          >{p.short}</button>
         ))}
       </div>
 
