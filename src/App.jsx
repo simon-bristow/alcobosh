@@ -66,6 +66,15 @@ export default function App() {
   // 5 most recent drinks (drinks are returned sorted at desc by the subscription).
   const recent = useMemo(() => drinks.slice(0, 5), [drinks])
 
+  // Days since the last real (non-free-day) drink. null = never had one.
+  const daysSinceLastDrink = useMemo(() => {
+    const lastReal = drinks.find(isReal)
+    if (!lastReal) return null
+    const last = startOfDay(new Date(lastReal.at))
+    const today = startOfDay(new Date())
+    return Math.round((today - last) / 864e5)
+  }, [drinks])
+
   // Rolling 7-day window: 7 cells ending at windowEnd (default today).
   const rolling7 = useMemo(() => {
     const unitsMap = unitsByDay(drinks)
@@ -147,6 +156,7 @@ export default function App() {
           viewDayReal={viewDayReal}
           viewDayFreeMarker={viewDayFreeMarker}
           recent={recent}
+          daysSinceLastDrink={daysSinceLastDrink}
           rolling7={rolling7}
           isCurrent7={isCurrent7}
           onShiftBack={shiftWindowBack}
@@ -313,7 +323,7 @@ function useLongPress({ onLong, ms = 500 }) {
 
 function Home({
   settings, viewDate, isViewingToday, onPickDay, onJumpToToday,
-  streak, viewDay, viewDayReal, viewDayFreeMarker, recent, rolling7, isCurrent7,
+  streak, viewDay, viewDayReal, viewDayFreeMarker, recent, daysSinceLastDrink, rolling7, isCurrent7,
   onShiftBack, onShiftForward, onJumpToCurrent7,
   onQuickAdd, onLongPressTile, onCustom, onFreeDay, onEdit, onDelete, onDuplicate,
 }) {
@@ -465,9 +475,18 @@ function Home({
         >{freeDayMarked ? 'Alco free day ✓' : 'Alco free day'}</button>
       </div>
 
-      <section className="mt-6">
+      {daysSinceLastDrink !== null && (
+        <div className="mt-6 flex items-center justify-between rounded-xl bg-white/5 px-3 py-2.5">
+          <span className="text-xs text-white/50">Days since last alcohol</span>
+          <span className={`text-sm font-semibold tabular-nums ${daysSinceLastDrink === 0 ? "text-white/60" : "text-emerald-300"}`}>
+            {daysSinceLastDrink === 0 ? "today" : daysSinceLastDrink}
+          </span>
+        </div>
+      )}
+
+      <section className="mt-3">
         <h2 className="text-sm text-white/60 mb-2">
-          {isViewingToday ? 'Today’s drinks' : `${selectedLabel}’s drinks`}
+          {isViewingToday ? "Today's drinks" : `${selectedLabel}'s drinks`}
         </h2>
         {viewDay.length === 0 ? (
           <p className="text-sm text-white/40">Nothing logged{isViewingToday ? ' yet' : ''}.</p>
