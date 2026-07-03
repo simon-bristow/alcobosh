@@ -187,6 +187,7 @@ export default function App() {
           settings={settings}
           onChange={(s) => { setSettings(s); saveSettings(s) }}
           session={session}
+          drinks={drinks}
         />
       )}
 
@@ -853,10 +854,39 @@ function Calendar({ drinks, settings, onPickDay }) {
   )
 }
 
-function Settings({ settings, onChange, session }) {
+function Settings({ settings, onChange, session, drinks }) {
   const [pairCode, setPairCode] = useState('')
   const [generatedCode, setGeneratedCode] = useState('')
   const [pairMsg, setPairMsg] = useState('')
+  const [healthRange, setHealthRange] = useState('all')
+
+  function exportHealthJSON() {
+    const unitsMap = unitsByDay(drinks.filter(isReal))
+    let entries = Object.entries(unitsMap).filter(([, u]) => u > 0)
+    if (healthRange === 'today') {
+      const k = isoDate(new Date())
+      entries = entries.filter(([d]) => d === k)
+    } else if (healthRange === '30d') {
+      const from = new Date()
+      from.setDate(from.getDate() - 29)
+      const fromKey = isoDate(from)
+      entries = entries.filter(([d]) => d >= fromKey)
+    }
+    const data = entries
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([date, units]) => ({
+        date,
+        units: Math.round(units * 100) / 100,
+        ethanolGrams: Math.round(units * 8 * 10) / 10,
+      }))
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'alcobosh-health.json'
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
 
   function patch(p) { onChange({ ...settings, ...p }) }
   function updateTile(id, p) {
@@ -949,6 +979,41 @@ function Settings({ settings, onChange, session }) {
         >
           + Add tile {settings.tiles.length >= MAX_TILES ? `(max ${MAX_TILES})` : `(${settings.tiles.length}/${MAX_TILES})`}
         </button>
+      </section>
+
+      <section className="rounded-2xl bg-white/5 p-4 space-y-3">
+        <h2 className="text-sm font-medium">Apple Health export</h2>
+        <p className="text-xs text-white/40">
+          Export drink data as JSON, then use an Apple Shortcut to log dietary alcohol to Apple Health.
+        </p>
+        <div className="flex gap-2">
+          <select
+            value={healthRange}
+            onChange={(e) => setHealthRange(e.target.value)}
+            className="flex-1 bg-white/5 rounded px-2 py-2 text-sm"
+          >
+            <option value="today">Today only</option>
+            <option value="30d">Last 30 days</option>
+            <option value="all">All time</option>
+          </select>
+          <button
+            onClick={exportHealthJSON}
+            className="rounded bg-emerald-500/20 hover:bg-emerald-500/30 px-3 py-2 text-sm"
+          >Export JSON</button>
+        </div>
+        <details className="text-xs">
+          <summary className="cursor-pointer select-none text-white/60 hover:text-white/80 py-0.5">Shortcut setup instructions</summary>
+          <ol className="mt-2 space-y-1.5 list-decimal list-inside text-white/50 leading-relaxed">
+            <li>On iPhone, open <strong className="text-white/70">Shortcuts</strong> and tap <strong className="text-white/70">+</strong></li>
+            <li>Add action: <strong className="text-white/70">Get File</strong> — choose the exported JSON from Files/iCloud Drive</li>
+            <li>Add action: <strong className="text-white/70">Repeat with Each Item</strong> in the file contents</li>
+            <li>Inside the loop — add: <strong className="text-white/70">Get Dictionary Value</strong>, key <code className="bg-white/10 px-0.5 rounded">ethanolGrams</code>, from Repeat Item</li>
+            <li>Add: <strong className="text-white/70">Get Dictionary Value</strong>, key <code className="bg-white/10 px-0.5 rounded">date</code>, from Repeat Item</li>
+            <li>Add: <strong className="text-white/70">Date</strong> action with the date value from step 5</li>
+            <li>Add: <strong className="text-white/70">Log Health Sample</strong> — Type: <em>Dietary Alcohol</em>, Amount: value from step 4, Unit: <em>grams</em>, Date: date from step 6</li>
+          </ol>
+          <p className="mt-2 text-white/30">Run once for the history import. For daily use, export Today only and re-run.</p>
+        </details>
       </section>
 
       <section className="rounded-2xl bg-white/5 p-4 space-y-3">
