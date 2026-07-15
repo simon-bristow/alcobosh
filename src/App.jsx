@@ -168,7 +168,7 @@ export default function App() {
           onFreeDay={logFreeDay}
           onEdit={setEditing}
           onDelete={(id) => remove(session.dataUid, id)}
-          onDuplicate={(d) => add(session.dataUid, { name: d.name, ml: d.ml, abv: d.abv, units: d.units, ...(isFreeDay(d) ? { freeDay: true } : {}) })}
+          onDuplicate={(d) => add(session.dataUid, { name: d.name, ml: d.ml, abv: d.abv, units: d.units, at: d.at, ...(isFreeDay(d) ? { freeDay: true } : {}) })}
         />
       )}
 
